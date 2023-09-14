@@ -124,6 +124,14 @@ def get_rt_file_path(dicom_dir) -> str:
     ][0]
 
 
+def get_files_not_rt(dicom_dir) -> list[str]:
+    return [
+        file_name
+        for file_name in glob(f"{dicom_dir}/**/**.dcm", recursive=True)
+        if not is_rt_file(file_name)
+    ]
+
+
 def get_immediate_dicom_parent_dir(dicom_dir):
     one_dcm_path = glob(f"{dicom_dir}/**/**.dcm", recursive=True)[0]
     one_dcm_path = Path(one_dcm_path)
