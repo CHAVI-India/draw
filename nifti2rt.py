@@ -5,6 +5,10 @@ from class_mapping import ts_prime_map
 from preprocess_data import get_files_not_rt
 import os
 import shutil
+import pandas as pd
+
+CSV_FILE_PATH = "data/db/db.csv"
+NNUNET_RESULTS_KEY = "nnUNet_results"
 
 
 def copy_all_not_rt_files(dicom_dir: str, save_dir: str) -> None:
@@ -38,18 +42,36 @@ def convert_multilabel_nifti_to_rtstruct(
         curr_mask = np_mask == idx
         rtstruct.add_roi(mask=curr_mask, name=name)
 
-    rtstruct.save(f"{save_dir}/RT.dcm")
+    rtstruct.save(f"{save_dir}/Pred_RT.dcm")
     if debug:
         print("RT saved at:", save_dir)
 
 
-if __name__ == "__main__":
+def get_dicom_root_dir(dataset_id, sample_no) -> str:
+    df = pd.read_csv(CSV_FILE_PATH)
+    op = df[(df["DatasetID"] == dataset_id) & df["SampleNumber"] == sample_no]
+    if not op.empty:
+        return op["DICOMRootDir"]
+    return None
 
-    for sample in range(10):
-        sample = 
+
+if __name__ == "__main__":
+    RESULTS_DIR = os.environ.get(NNUNET_RESULTS_KEY, None)
+
+    if RESULTS_DIR is None:
+        raise ValueError(f"Value of {NNUNET_RESULTS_KEY} is not set. Aborting...")
+
+    # TODO: get details from CLI. Also number of samples
+    dataset_id = 720
+    dataset_name = "TSPrime"
+    dataset_tag = "seg"
+
+    number_of_samples = 24
+    for sample in range(number_of_samples):
+        sample_no = str(sample).zfill(3)
         convert_multilabel_nifti_to_rtstruct(
-            nifti_file_path="data/nnUNet_results/Dataset720_TSPrime/imagesTr_predhighres/seg_000.nii.gz",
-            dicom_dir="data/raw/TS_Prime/2013030109202300012/2013030109202300012.0.1693545750295",
-            save_dir="data/nnUNet_results/Dataset720_TSPrime/nnUNetTrainer__nnUNetPlans__3d_fullres/seg_000_results",
+            nifti_file_path=f"{RESULTS_DIR}/Dataset{dataset_id}_{dataset_name}/imagesTr_predhighres/{dataset_tag}_{sample_no}.nii.gz",
+            dicom_dir=get_dicom_root_dir(dataset_id, sample_no),
+            save_dir=f"{RESULTS_DIR}/Dataset{dataset_id}_{dataset_name}/nnUNetTrainer__nnUNetPlans__3d_fullres/preds/{sample_no}",
             label_to_name_map=ts_prime_map,
         )
