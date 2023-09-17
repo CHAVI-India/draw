@@ -16,7 +16,6 @@ ts_prime_map = {
     4: "bag_bowel",
     5: "femur_head_l",
     6: "femur_head_r",
-    7: "penile_bulb",
-    8: "ctvp",
-    9: "ctvn",
+    7: "ctvp",
+    8: "ctvn",
 }

@@ -1,35 +1,26 @@
 # Adapted from https://github.com/wasserth/TotalSegmentator/blob/master/totalsegmentator/dicom_io.py
 # Adapted from https://github.com/Sikerdebaard/dcmrtstruct2nii/tree/master/dcmrtstruct2nii
-import logging
 import os
 import os.path
-import shutil
 import tempfile
 from glob import glob
 from pathlib import Path
 
 import nibabel as nib
 import numpy as np
-from dcmrtstruct2nii.adapters.convert.filenameconverter import FilenameConverter
-from dcmrtstruct2nii.adapters.convert.rtstructcontour2mask import DcmPatientCoords2Mask
-from dcmrtstruct2nii.adapters.input.contours.rtstructinputadapter import (
-    RtStructInputAdapter,
-)
-from dcmrtstruct2nii.adapters.input.image.dcminputadapter import DcmInputAdapter
-from dcmrtstruct2nii.adapters.output.niioutputadapter import NiiOutputAdapter
-from dcmrtstruct2nii.exceptions import (
-    ContourOutOfBoundsException,
-    PathDoesNotExistException,
-)
 from pydicom import dcmread
 
 from class_mapping import ts_prime_map
 import json
 import argparse
+from csv import DictWriter
+
+from dcm2nii import dicom2nii
 
 TEMP_DIR_BASE = "temp"
 OUTPUT_DIR = "output"
 NNUNET_RAW_DATA_ENV_KEY = "nnUNet_raw"
+CSV_FILE_PATH = "data/db/db.csv"
 
 
 def convert_dicom_dir_to_nnunet_dataset(
@@ -72,6 +63,23 @@ def convert_dicom_dir_to_nnunet_dataset(
     # convert_dicom_image_to_nifti(dicom_dir, img_save_path)
     convert_dicom_to_nifti(dicom_dir, img_save_path, seg_save_path)
     make_dataset_json_file(dataset_dir, seg_map=ts_prime_map)
+    append_data_to_db(
+        dataset_id, sample_number, get_immediate_dicom_parent_dir(dicom_dir)
+    )
+
+
+def append_data_to_db(dataset_id, sample_number, dataset_dir):
+    """
+    Adds data to CSV file for later usage
+    """
+    data = {
+        "DatasetID": dataset_id,
+        "SampleNumber": sample_number,
+        "DICOMRootDir": dataset_dir,
+    }
+    with open(CSV_FILE_PATH, "a") as fp:
+        csv = DictWriter(fp, fieldnames=data.keys())
+        csv.writerow(data)
 
 
 def get_data_save_paths(
@@ -97,17 +105,6 @@ def get_data_save_paths(
         f"{labels_dir}/{data_tag}_{sample_number}.{extension}",
     )
     return img_save_path, seg_save_path, dataset_dir
-
-
-# 75
-
-
-# def convert_dicom_image_to_nifti(dicom_dir, image_save_path):
-#     with tempfile.TemporaryDirectory(dir=TEMP_DIR_BASE) as temp_dir:
-#         DCM2NII_SUBPROCESS_CALL = f"dcm2niix -o {temp_dir} -z y {dicom_dir}"
-#         os.system(DCM2NII_SUBPROCESS_CALL)  # TODO: Use subprocess module if possible
-#         nifti_name = glob(f"{temp_dir}/**.nii.gz")[0]
-#         shutil.copy(nifti_name, image_save_path)
 
 
 def is_rt_file(file_name):
@@ -142,7 +139,7 @@ def convert_dicom_to_nifti(dicom_dir, img_save_path, seg_save_path):
     with tempfile.TemporaryDirectory(dir=TEMP_DIR_BASE) as temp_dir:
         rt_file_path = get_rt_file_path(dicom_dir)
         dicom_dir_immediate_parent = get_immediate_dicom_parent_dir(dicom_dir)
-        dcmrtstruct2nii(
+        dicom2nii(
             rt_file_path,
             dicom_dir_immediate_parent,
             temp_dir,
@@ -161,7 +158,6 @@ def combine_masks_to_multilabel_file(masks_dir, multilabel_file, seg_map):
     masks_dir: path to directory containing all the masks for one subject
     multilabel_file: path of the output file (a nifti file)
     """
-    print(seg_map)
     one_mask = glob(f"{masks_dir}/**.nii.gz")[0]
     reference_image = nib.load(one_mask)
     output_image = np.zeros(reference_image.shape).astype(np.uint8)
@@ -176,104 +172,6 @@ def combine_masks_to_multilabel_file(masks_dir, multilabel_file, seg_map):
         output_image[img > 0.5] = seg_fill_value
 
     nib.save(nib.Nifti1Image(output_image, reference_image.affine), multilabel_file)
-
-
-def dcmrtstruct2nii(
-    rtstruct_file,
-    dicom_file,
-    output_path,
-    original_dicom_save_path,
-    structures=None,
-    gzip=True,
-    mask_background_value=0,
-    mask_foreground_value=255,
-    convert_original_dicom=True,
-    series_id=None,
-):  # noqa: C901 E501
-    """
-    Converts A DICOM and DICOM RT Struct file to nii
-
-    :param rtstruct_file: Path to the rtstruct file
-    :param dicom_file: Path to the dicom file
-    :param output_path: Output path where the masks are written to
-    :param structures: Optional, list of structures to convert
-    :param gzip: Optional, output .nii.gz if set to True, default: True
-    :param series_id: Optional, the Series Instance UID. Use  to specify the ID corresponding to the image if there are
-    dicoms from more than one series in `dicom_file` folder
-
-    :raise InvalidFileFormatException: Raised when an invalid file format is given.
-    :raise PathDoesNotExistException: Raised when the given path does not exist.
-    :raise UnsupportedTypeException: Raised when conversion is not supported.
-    :raise ValueError: Raised when mask_background_value or mask_foreground_value is invalid.
-    """
-    output_path = os.path.join(output_path, "")  # make sure trailing slash is there
-
-    if not os.path.exists(rtstruct_file):
-        raise PathDoesNotExistException(
-            f"rtstruct path does not exist: {rtstruct_file}"
-        )
-
-    if not os.path.exists(dicom_file):
-        raise PathDoesNotExistException(f"DICOM path does not exists: {dicom_file}")
-
-    if mask_background_value < 0 or mask_background_value > 255:
-        raise ValueError(
-            f"Invalid value for mask_background_value: {mask_background_value}, must be between 0 and 255"
-        )
-
-    if mask_foreground_value < 0 or mask_foreground_value > 255:
-        raise ValueError(
-            f"Invalid value for mask_foreground_value: {mask_foreground_value}, must be between 0 and 255"
-        )
-
-    if structures is None:
-        structures = []
-
-    os.makedirs(output_path, exist_ok=True)
-
-    filename_converter = FilenameConverter()
-    rtreader = RtStructInputAdapter()
-
-    rtstructs = rtreader.ingest(rtstruct_file)
-    dicom_image = DcmInputAdapter().ingest(dicom_file, series_id=series_id)
-
-    dcm_patient_coords_to_mask = DcmPatientCoords2Mask()
-    nii_output_adapter = NiiOutputAdapter()
-    for rtstruct in rtstructs:
-        if len(structures) == 0 or rtstruct["name"] in structures:
-            if "sequence" not in rtstruct:
-                logging.info(
-                    "Skipping mask {} no shape/polygon found".format(rtstruct["name"])
-                )
-                continue
-
-            logging.info("Working on mask {}".format(rtstruct["name"]))
-            try:
-                mask = dcm_patient_coords_to_mask.convert(
-                    rtstruct["sequence"],
-                    dicom_image,
-                    mask_background_value,
-                    mask_foreground_value,
-                )
-            except ContourOutOfBoundsException:
-                logging.warning(
-                    f'Structure {rtstruct["name"]} is out of bounds, ignoring contour!'
-                )
-                continue
-
-            mask.CopyInformation(dicom_image)
-
-            final_file_name = f'{rtstruct["name"]}'
-            final_file_name = final_file_name.lower()
-
-            mask_filename = filename_converter.convert(final_file_name)
-            nii_output_adapter.write(mask, f"{output_path}{mask_filename}", gzip)
-
-    if convert_original_dicom:
-        logging.info("Converting original DICOM to nii")
-        nii_output_adapter.write(dicom_image, original_dicom_save_path, gzip)
-
-    logging.info("Success!")
 
 
 def make_dataset_json_file(dataset_dir, seg_map):
