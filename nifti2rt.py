@@ -30,6 +30,7 @@ def convert_multilabel_nifti_to_rtstruct(
     rtstruct = RTStructBuilder.create_new(dicom_dir)
     nifti_mask = nib.load(nifti_file_path)
     np_mask = np.asanyarray(nifti_mask.dataobj)
+    np_mask = np.transpose(np_mask, [1, 0, 2])
 
     for idx, name in label_to_name_map.items():
         if debug:
@@ -43,9 +44,12 @@ def convert_multilabel_nifti_to_rtstruct(
 
 
 if __name__ == "__main__":
-    convert_multilabel_nifti_to_rtstruct(
-        nifti_file_path="data/nnUNet_raw/Dataset720_TSPrime/labelsTr/seg_000.nii.gz",
-        dicom_dir="data/raw/TS_Prime/2013030109202300012/2013030109202300012.0.1693545750295",
-        save_dir="data/nnUNet_results/Dataset720_TSPrime/nnUNetTrainer__nnUNetPlans__3d_fullres/rt_000",
-        label_to_name_map=ts_prime_map,
-    )
+
+    for sample in range(10):
+        sample = 
+        convert_multilabel_nifti_to_rtstruct(
+            nifti_file_path="data/nnUNet_results/Dataset720_TSPrime/imagesTr_predhighres/seg_000.nii.gz",
+            dicom_dir="data/raw/TS_Prime/2013030109202300012/2013030109202300012.0.1693545750295",
+            save_dir="data/nnUNet_results/Dataset720_TSPrime/nnUNetTrainer__nnUNetPlans__3d_fullres/seg_000_results",
+            label_to_name_map=ts_prime_map,
+        )
