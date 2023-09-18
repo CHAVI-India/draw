@@ -1,7 +1,0 @@
-Chris Rorden's dcm2niiX version v1.0.20220720  GCC10.4.0 x86-64 (64-bit Linux)
-Found 261 DICOM file(s)
-Convert 260 DICOM as temp/tmpbq5rchq0/2013030109202300012_CE_SCAN_20220322110856_3 (512x512x260x1)
-
-Please cite:
-Thomas Phil, Thomas Albrecht, Skylar Gay, & Mathis Ersted Rasmussen. (2023). Sikerdebaard/dcmrtstruct2nii: dcmrtstruct2nii v5 (Version v5). Zenodo. https://doi.org/10.5281/zenodo.4037864
-

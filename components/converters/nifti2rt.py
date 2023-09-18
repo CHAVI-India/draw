@@ -1,8 +1,8 @@
 from rt_utils import RTStructBuilder
 import nibabel as nib
 import numpy as np
-from class_mapping import ts_prime_map
-from preprocess_data import get_files_not_rt
+from components.class_mapping import ts_prime_map
+from components.preprocess.preprocess_data import get_files_not_rt
 import os
 import shutil
 import pandas as pd
@@ -29,7 +29,7 @@ def convert_multilabel_nifti_to_rtstruct(
 
     os.makedirs(save_dir, exist_ok=True)
 
-    copy_all_not_rt_files(dicom_dir, save_dir)
+    # copy_all_not_rt_files(dicom_dir, save_dir)
 
     rtstruct = RTStructBuilder.create_new(dicom_dir)
     nifti_mask = nib.load(nifti_file_path)
@@ -47,11 +47,18 @@ def convert_multilabel_nifti_to_rtstruct(
         print("RT saved at:", save_dir)
 
 
-def get_dicom_root_dir(dataset_id, sample_no) -> str:
-    df = pd.read_csv(CSV_FILE_PATH)
-    op = df[(df["DatasetID"] == dataset_id) & df["SampleNumber"] == sample_no]
+def get_dicom_root_dir(dataset_id: int, sample_no: str) -> str:
+    df = pd.read_csv(
+        CSV_FILE_PATH,
+        dtype={
+            "DatasetID": int,
+            "SampleNumber": str,
+            "DICOMRootDir": str,
+        },
+    )
+    op = df.loc[(df["DatasetID"] == dataset_id) & (df["SampleNumber"] == sample_no)]
     if not op.empty:
-        return op["DICOMRootDir"]
+        return op["DICOMRootDir"].iloc[0]
     return None
 
 
@@ -69,6 +76,7 @@ if __name__ == "__main__":
     number_of_samples = 24
     for sample in range(number_of_samples):
         sample_no = str(sample).zfill(3)
+        print("Processing Sample: ", sample_no)
         convert_multilabel_nifti_to_rtstruct(
             nifti_file_path=f"{RESULTS_DIR}/Dataset{dataset_id}_{dataset_name}/imagesTr_predhighres/{dataset_tag}_{sample_no}.nii.gz",
             dicom_dir=get_dicom_root_dir(dataset_id, sample_no),

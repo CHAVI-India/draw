@@ -10,12 +10,12 @@ import nibabel as nib
 import numpy as np
 from pydicom import dcmread
 
-from class_mapping import ts_prime_map
+from components.class_mapping import ts_prime_map
 import json
 import argparse
 from csv import DictWriter
 
-from dcm2nii import dicom2nii
+from components.converters.dcm2nii import dicom2nii
 
 TEMP_DIR_BASE = "temp"
 OUTPUT_DIR = "output"
