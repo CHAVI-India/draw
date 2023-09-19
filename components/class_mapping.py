@@ -1,6 +1,6 @@
 # NOTE: The labels are as per harmonization scheme
 ALL_SEG_MAP = {
-    "TS_PRIME": {
+    "TSPrime": {
         1: "body",
         2: "bladder",
         3: "anorectum",
@@ -11,7 +11,7 @@ ALL_SEG_MAP = {
         8: "ctvp",
         9: "ctvn",
     },
-    "TS_GYNE": {
+    "TSGyne": {
         1: "Bladder",
         2: "Bag_Bowel",
         3: "SpinalCord",

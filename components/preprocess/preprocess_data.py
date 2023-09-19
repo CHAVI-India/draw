@@ -10,7 +10,7 @@ import nibabel as nib
 import numpy as np
 from pydicom import dcmread
 
-from components.class_mapping import ts_prime_map
+from components.class_mapping import ALL_SEG_MAP
 import json
 import argparse
 from csv import DictWriter
@@ -44,7 +44,7 @@ def convert_dicom_dir_to_nnunet_dataset(
 
         sample_number: (str) sample number, Eg 009 in la_009.nii.gz
 
-        data_tag: (str) tag of the data, Eg la inla_009.nii.gz
+        data_tag: (str) tag of the data, Eg la in la_009.nii.gz
 
         extension: (str) File extension, Eg: nii.gz,
 
@@ -60,9 +60,9 @@ def convert_dicom_dir_to_nnunet_dataset(
         extension,
     )
 
-    # convert_dicom_image_to_nifti(dicom_dir, img_save_path)
-    convert_dicom_to_nifti(dicom_dir, img_save_path, seg_save_path)
-    make_dataset_json_file(dataset_dir, seg_map=ts_prime_map)
+    seg_map = ALL_SEG_MAP[dataset_name]
+    convert_dicom_to_nifti(dicom_dir, img_save_path, seg_save_path, seg_map)
+    make_dataset_json_file(dataset_dir, seg_map=seg_map)
     append_data_to_db(
         dataset_id, sample_number, get_immediate_dicom_parent_dir(dicom_dir)
     )
@@ -135,7 +135,7 @@ def get_immediate_dicom_parent_dir(dicom_dir):
     return str(one_dcm_path.parent)
 
 
-def convert_dicom_to_nifti(dicom_dir, img_save_path, seg_save_path):
+def convert_dicom_to_nifti(dicom_dir, img_save_path, seg_save_path, seg_map):
     with tempfile.TemporaryDirectory(dir=TEMP_DIR_BASE) as temp_dir:
         rt_file_path = get_rt_file_path(dicom_dir)
         dicom_dir_immediate_parent = get_immediate_dicom_parent_dir(dicom_dir)
@@ -147,7 +147,7 @@ def convert_dicom_to_nifti(dicom_dir, img_save_path, seg_save_path):
             mask_background_value=0,
             convert_original_dicom=True,
         )
-        combine_masks_to_multilabel_file(temp_dir, seg_save_path, ts_prime_map)
+        combine_masks_to_multilabel_file(temp_dir, seg_save_path, seg_map)
 
 
 def combine_masks_to_multilabel_file(masks_dir, multilabel_file, seg_map):
