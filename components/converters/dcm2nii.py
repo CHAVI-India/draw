@@ -102,7 +102,6 @@ def dicom2nii(
             mask.CopyInformation(dicom_image)
 
             final_file_name = f'{rtstruct["name"]}'
-            final_file_name = final_file_name.lower()
 
             mask_filename = filename_converter.convert(final_file_name)
             nii_output_adapter.write(mask, f"{output_path}{mask_filename}", gzip)
