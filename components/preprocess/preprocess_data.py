@@ -14,12 +14,13 @@ from components.class_mapping import ALL_SEG_MAP
 import json
 from csv import DictWriter
 
+from components.constants import (
+    TEMP_DIR_BASE,
+    NNUNET_RAW_DATA_ENV_KEY,
+    CSV_FILE_PATH,
+    BASE_DIR,
+)
 from components.converters.dcm2nii import convert_DICOM_to_Multi_NIFTI
-
-TEMP_DIR_BASE = "temp"
-OUTPUT_DIR = "output"
-NNUNET_RAW_DATA_ENV_KEY = "nnUNet_raw"
-CSV_FILE_PATH = "data/db/db.csv"
 
 
 def convert_dicom_dir_to_nnunet_dataset(
@@ -37,9 +38,9 @@ def convert_dicom_dir_to_nnunet_dataset(
         dicom_dir: (str) Full path of extracted DICOM files. The dir should contains .dcm files
         from the same series. RT Struct should be present in the directory
 
-        dataset_id: (str) 3 digit ID of the nn UNet dataset.
+        dataset_id: (str) 3-digit ID of the nn UNet dataset.
 
-        datatset_name: (str) Name of the dataset. Eg: Heart, Spleen.
+        dataset_name: (str) Name of the dataset. Eg: Heart, Spleen.
 
         sample_number: (str) sample number, Eg 009 in la_009.nii.gz
 
@@ -88,8 +89,6 @@ def get_data_save_paths(
     sample_number,
     extension,
 ):
-    BASE_DIR = os.environ.get(NNUNET_RAW_DATA_ENV_KEY, None)
-
     if BASE_DIR is None:
         raise ValueError(f"Value of {NNUNET_RAW_DATA_ENV_KEY} is not set. Aborting...")
 
@@ -160,7 +159,7 @@ def combine_masks_to_multilabel_file(masks_dir, multilabel_file, seg_map):
     """
     one_mask = glob(f"{masks_dir}/**.nii.gz")[0]
     reference_image = nib.load(one_mask)
-    output_image = np.zeros(reference_image.shape).astype(np.uint8)
+    output_image: np.ndarray = np.zeros(reference_image.shape).astype(np.uint8)
 
     for seg_fill_value, seg_name in seg_map.items():
         print("Processing Map: ", seg_name)

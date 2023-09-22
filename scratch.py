@@ -1,13 +1,8 @@
-from nnunetv2.training.loss.dice import MemoryEfficientSoftDiceLoss, SoftDiceLoss
-from nnunetv2.training.nnUNetTrainer.variants.loss.nnUNetTrainerDiceLoss import (
-    nnUNetTrainerDiceCELoss_noSmooth,
-    nnUNetTrainer,
-)
 import nibabel as nib
 import numpy as np
 import torch
 from einops import repeat
-
+from nnunetv2.training.loss.dice import SoftDiceLoss
 
 l = SoftDiceLoss(smooth=0, batch_dice=True, ddp=False)
 
@@ -22,7 +17,7 @@ pred = get_tensor(
     "data/nnUNet_results/Dataset720_TSPrime/imagesTr_predhighres/seg_000.nii.gz"
 )
 gt = get_tensor("data/nnUNet_raw/Dataset720_TSPrime/labelsTr/seg_000.nii.gz")
-mask = (gt == 7)
+mask = gt == 7
 
 print(pred.shape, gt.shape, mask.shape)
 

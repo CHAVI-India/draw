@@ -1,7 +1,10 @@
+# TODO: Generalise this
+
+
 from rt_utils import RTStructBuilder
 import nibabel as nib
 import numpy as np
-from components.class_mapping import ts_prime_map
+from components.class_mapping import ALL_SEG_MAP
 from components.preprocess.preprocess_data import get_files_not_rt
 import os
 import shutil
