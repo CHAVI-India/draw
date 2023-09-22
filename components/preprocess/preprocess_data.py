@@ -14,7 +14,7 @@ from components.class_mapping import ALL_SEG_MAP
 import json
 from csv import DictWriter
 
-from components.converters.dcm2nii import dicom2nii
+from components.converters.dcm2nii import convert_DICOM_to_Multi_NIFTI
 
 TEMP_DIR_BASE = "temp"
 OUTPUT_DIR = "output"
@@ -138,12 +138,13 @@ def convert_dicom_to_nifti(dicom_dir, img_save_path, seg_save_path, seg_map):
     with tempfile.TemporaryDirectory(dir=TEMP_DIR_BASE) as temp_dir:
         rt_file_path = get_rt_file_path(dicom_dir)
         dicom_dir_immediate_parent = get_immediate_dicom_parent_dir(dicom_dir)
-        dicom2nii(
+        convert_DICOM_to_Multi_NIFTI(
             rt_file_path,
             dicom_dir_immediate_parent,
             temp_dir,
             img_save_path,
             mask_background_value=0,
+            mask_foreground_value=1,
             convert_original_dicom=True,
         )
         combine_masks_to_multilabel_file(temp_dir, seg_save_path, seg_map)

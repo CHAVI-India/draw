@@ -1,4 +1,5 @@
 # NOTE: The labels are as per harmonization scheme
+# WARNING: Label Ordering VVV important, overwriting possible. Put largest labels first
 ALL_SEG_MAP = {
     "TSPrime": {
         1: "body",
@@ -12,14 +13,14 @@ ALL_SEG_MAP = {
         9: "ctvn",
     },
     "TSGyne": {
-        1: "Bladder",
-        2: "Bag_Bowel",
-        3: "SpinalCord",
-        4: "Duodenum",
-        5: "Pancreas",
-        6: "Rectum",
-        7: "Colon_Sigmoid",
-        8: "Body",
+        1: "Body",
+        2: "Bladder",
+        3: "Bag_Bowel",
+        4: "SpinalCord",
+        5: "Duodenum",
+        6: "Pancreas",
+        7: "Rectum",
+        8: "Colon_Sigmoid",
         9: "Vs_Int_Iliac",
         10: "Vs_Common_Iliac",
         11: "Vs_Ext_Iliac",
