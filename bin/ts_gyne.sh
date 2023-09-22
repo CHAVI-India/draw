@@ -17,4 +17,5 @@ DATASET_ID=800
 # nnUNetv2_plan_and_preprocess -d 800 --verify_dataset_integrity
 
 # Train
-nnUNetv2_train $DATASET_ID 3d_fullres 0
+nnUNetv2_train $DATASET_ID 3d_fullres 0 \
+    -tr nnUNetTrainerDiceCELoss_noSmooth
