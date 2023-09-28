@@ -1,7 +1,10 @@
 source bin/env.sh
 
-nnUNetv2_evaluate_folder data/nnUNet_raw/Dataset720_TSPrime/labelsTr \
-    data/nnUNet_results/Dataset720_TSPrime/imagesTr_predhighres \
-    -djfile data/nnUNet_results/Dataset720_TSPrime/imagesTr_predhighres/dataset.json \
-    -pfile data/nnUNet_results/Dataset720_TSPrime/imagesTr_predhighres/plans.json \
+PRED=data/nnUNet_results/Dataset800_TSGyne/imagesTr_predhighres
+LABELS=data/nnUNet_raw/Dataset800_TSGyne/labelsTr 
+
+nnUNetv2_evaluate_folder $LABELS\
+    $PRED \
+    -djfile $PRED/dataset.json \
+    -pfile $PRED/plans.json \
     --chill

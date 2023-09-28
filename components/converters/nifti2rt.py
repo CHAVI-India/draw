@@ -50,7 +50,8 @@ def convert_multilabel_nifti_to_rtstruct(
         print("RT saved at:", save_dir)
 
 
-def get_dicom_root_dir(dataset_id: int, sample_no: str) -> str:
+def get_dicom_root_dir(dataset_id: int, sample_no: str) -> tuple[str, str]:
+    # Path and dir name
     df = pd.read_csv(
         CSV_FILE_PATH,
         dtype={
@@ -61,28 +62,65 @@ def get_dicom_root_dir(dataset_id: int, sample_no: str) -> str:
     )
     op = df.loc[(df["DatasetID"] == dataset_id) & (df["SampleNumber"] == sample_no)]
     if not op.empty:
-        return op["DICOMRootDir"].iloc[0]
-    return None
+        dcm_root_dir = op["DICOMRootDir"].iloc[0]
+        return dcm_root_dir, os.path.split(dcm_root_dir)[-1]
+    return None, None
+
+def get_sample_summary(s_no, summaries):
+    # summaries is the array 'metric_per_case'
+    s_summary = [s for s in summaries if f"seg_{s_no}" in s["reference_file"]][0]
+
+    d = {}
+
+    for idx in s_summary["metrics"].keys():
+        d[ALL_SEG_MAP["TSGyne"][int(idx)]] = round(s_summary["metrics"][idx]["Dice"], 4)
+    # metrics, 1, Dice
+    return d
+
+def modify_splits(splits: dict):
+    # train, val
+    d = {}
+    for key in splits.keys():
+        for i in splits[key]:
+            d[i.split("_")[-1]] = key
+    print(d)
+    return d
 
 
-if __name__ == "__main__":
-    RESULTS_DIR = os.environ.get(NNUNET_RESULTS_KEY, None)
 
-    if RESULTS_DIR is None:
-        raise ValueError(f"Value of {NNUNET_RESULTS_KEY} is not set. Aborting...")
+def add_to_output_csv(dataset_id: int, summaries: list[dict], splits, save_path):
+    # Path and dir name
+    df = pd.read_csv(
+        CSV_FILE_PATH,
+        dtype={
+            "DatasetID": int,
+            "SampleNumber": str,
+            "DICOMRootDir": str,
+        },
+    )
 
-    # TODO: get details from CLI. Also number of samples
-    dataset_id = 720
-    dataset_name = "TSPrime"
-    dataset_tag = "seg"
+    df_op = pd.DataFrame()
+    sample_splits = modify_splits(splits)
 
-    number_of_samples = 24
-    for sample in range(number_of_samples):
-        sample_no = str(sample).zfill(3)
-        print("Processing Sample: ", sample_no)
-        convert_multilabel_nifti_to_rtstruct(
-            nifti_file_path=f"{RESULTS_DIR}/Dataset{dataset_id}_{dataset_name}/imagesTr_predhighres/{dataset_tag}_{sample_no}.nii.gz",
-            dicom_dir=get_dicom_root_dir(dataset_id, sample_no),
-            save_dir=f"{RESULTS_DIR}/Dataset{dataset_id}_{dataset_name}/nnUNetTrainer__nnUNetPlans__3d_fullres/preds/{sample_no}",
-            label_to_name_map=ts_prime_map,
-        )
+    all_sample_zip = list(zip(df.DatasetID, df.SampleNumber))
+    for d_id, s_no in all_sample_zip:
+        if d_id == dataset_id:
+            _, series_id = get_dicom_root_dir(dataset_id, s_no)
+
+            sample_summary = get_sample_summary(s_no, summaries)
+            df_op = df_op._append({
+                "DICOMId": series_id,
+                "NNUNetSampleNo": s_no,
+                "Split": sample_splits[s_no],
+                **sample_summary
+            }, ignore_index=True)
+
+    df_op.to_csv(f"{save_path}/dice.csv", index=False)
+
+
+
+
+
+
+
+
