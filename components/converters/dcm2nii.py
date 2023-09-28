@@ -1,3 +1,6 @@
+import os
+import os.path
+
 from dcmrtstruct2nii.adapters.convert.rtstructcontour2mask import DcmPatientCoords2Mask
 from dcmrtstruct2nii.adapters.input.contours.rtstructinputadapter import (
     RtStructInputAdapter,
@@ -8,10 +11,6 @@ from dcmrtstruct2nii.exceptions import (
     ContourOutOfBoundsException,
     PathDoesNotExistException,
 )
-
-
-import os
-import os.path
 
 
 def convert_DICOM_to_Multi_NIFTI(

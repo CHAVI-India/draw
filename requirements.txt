@@ -9,3 +9,4 @@ pandas==2.0.3
 pydicom==2.4.2
 rt-utils==1.2.7
 torch==2.0.1
+--extra-index-url https://download.pytorch.org/whl/cu117

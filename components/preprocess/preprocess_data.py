@@ -1,8 +1,10 @@
 # Adapted from https://github.com/wasserth/TotalSegmentator/blob/master/totalsegmentator/dicom_io.py
 # Adapted from https://github.com/Sikerdebaard/dcmrtstruct2nii/tree/master/dcmrtstruct2nii
+import json
 import os
 import os.path
 import tempfile
+from csv import DictWriter
 from glob import glob
 from pathlib import Path
 
@@ -11,9 +13,6 @@ import numpy as np
 from pydicom import dcmread
 
 from components.class_mapping import ALL_SEG_MAP
-import json
-from csv import DictWriter
-
 from components.constants import (
     TEMP_DIR_BASE,
     NNUNET_RAW_DATA_ENV_KEY,
