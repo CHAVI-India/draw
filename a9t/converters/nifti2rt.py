@@ -1,24 +1,17 @@
-# TODO: Generalise this
+import glob
+import os
+from datetime import datetime
 
-
-from rt_utils import RTStructBuilder
 import nibabel as nib
 import numpy as np
-from components.class_mapping import ALL_SEG_MAP
-from components.preprocess.preprocess_data import get_files_not_rt
-import os
-import shutil
 import pandas as pd
+from rt_utils import RTStructBuilder
+
+from a9t.class_mapping import ALL_SEG_MAP
+from a9t.constants import DB_NAME
 
 CSV_FILE_PATH = "data/db/db.csv"
 NNUNET_RESULTS_KEY = "nnUNet_results"
-
-
-def copy_all_not_rt_files(dicom_dir: str, save_dir: str) -> None:
-    all_dcm_files = get_files_not_rt(dicom_dir)
-    for src in all_dcm_files:
-        _, dst_filename = os.path.split(src)
-        shutil.copy(src, f"{save_dir}/{dst_filename}")
 
 
 def convert_multilabel_nifti_to_rtstruct(
@@ -31,8 +24,6 @@ def convert_multilabel_nifti_to_rtstruct(
     """Convert multiple NIFTI files to RT"""
 
     os.makedirs(save_dir, exist_ok=True)
-
-    # copy_all_not_rt_files(dicom_dir, save_dir)
 
     rtstruct = RTStructBuilder.create_new(dicom_dir)
     nifti_mask = nib.load(nifti_file_path)
@@ -50,10 +41,11 @@ def convert_multilabel_nifti_to_rtstruct(
         print("RT saved at:", save_dir)
 
 
-def get_dicom_root_dir(dataset_id: int, sample_no: str) -> tuple[str, str]:
+def get_dcm_root_from_csv(dataset_id: int, sample_no: str, dataset_dir):
     # Path and dir name
     df = pd.read_csv(
-        CSV_FILE_PATH,
+        f"{dataset_dir}/{DB_NAME}",
+        header=None,
         dtype={
             "DatasetID": int,
             "SampleNumber": str,
@@ -64,7 +56,8 @@ def get_dicom_root_dir(dataset_id: int, sample_no: str) -> tuple[str, str]:
     if not op.empty:
         dcm_root_dir = op["DICOMRootDir"].iloc[0]
         return dcm_root_dir, os.path.split(dcm_root_dir)[-1]
-    return None, None
+    return "", ""
+
 
 def get_sample_summary(s_no, summaries):
     # summaries is the array 'metric_per_case'
@@ -77,6 +70,7 @@ def get_sample_summary(s_no, summaries):
     # metrics, 1, Dice
     return d
 
+
 def modify_splits(splits: dict):
     # train, val
     d = {}
@@ -85,7 +79,6 @@ def modify_splits(splits: dict):
             d[i.split("_")[-1]] = key
     print(d)
     return d
-
 
 
 def add_to_output_csv(dataset_id: int, summaries: list[dict], splits, save_path):
@@ -105,22 +98,40 @@ def add_to_output_csv(dataset_id: int, summaries: list[dict], splits, save_path)
     all_sample_zip = list(zip(df.DatasetID, df.SampleNumber))
     for d_id, s_no in all_sample_zip:
         if d_id == dataset_id:
-            _, series_id = get_dicom_root_dir(dataset_id, s_no)
+            _, series_id = get_dcm_root_from_csv(dataset_id, s_no)
 
             sample_summary = get_sample_summary(s_no, summaries)
-            df_op = df_op._append({
-                "DICOMId": series_id,
-                "NNUNetSampleNo": s_no,
-                "Split": sample_splits[s_no],
-                **sample_summary
-            }, ignore_index=True)
+            df_op = df_op._append(
+                {
+                    "DICOMId": series_id,
+                    "NNUNetSampleNo": s_no,
+                    "Split": sample_splits[s_no],
+                    **sample_summary,
+                },
+                ignore_index=True,
+            )
 
     df_op.to_csv(f"{save_path}/dice.csv", index=False)
 
 
+def get_sample_number_from_nifti_path(nifti_path, delim="_seg"):
+    _, txt = nifti_path.split(delim)
+    # 014.nii.gz
+    return txt.split(".")[0]
 
 
-
-
-
-
+def convert_nifti_outputs_to_dicom(preds_dir, dataset_dir, dataset_id, dataset_name):
+    curr_time = datetime.now().strftime("%Y_%m_%d_%H_%M")
+    dataset_tag = "seg"
+    for nifti_file_path in glob.glob(f"{preds_dir}/**.nii.gz"):
+        sample_no = get_sample_number_from_nifti_path(nifti_file_path, dataset_tag)
+        print("Processing Sample: ", sample_no)
+        dcm_root_dir, dcm_parent_folder = get_dcm_root_from_csv(
+            dataset_id, sample_no, dataset_dir
+        )
+        convert_multilabel_nifti_to_rtstruct(
+            nifti_file_path=nifti_file_path,
+            dicom_dir=dcm_root_dir,
+            save_dir=f"{preds_dir}/{curr_time}/{dcm_parent_folder}",
+            label_to_name_map=ALL_SEG_MAP[dataset_name],
+        )

@@ -3,6 +3,7 @@
 import json
 import os
 import os.path
+import shutil
 import tempfile
 from csv import DictWriter
 from glob import glob
@@ -12,14 +13,19 @@ import nibabel as nib
 import numpy as np
 from pydicom import dcmread
 
-from components.class_mapping import ALL_SEG_MAP
-from components.constants import (
+from a9t.adapters.nnunetv2 import NNUNetV2Adapter
+from a9t.class_mapping import ALL_SEG_MAP
+from a9t.constants import (
     TEMP_DIR_BASE,
     NNUNET_RAW_DATA_ENV_KEY,
-    CSV_FILE_PATH,
     BASE_DIR,
+    DB_NAME,
 )
-from components.converters.dcm2nii import convert_DICOM_to_Multi_NIFTI
+from a9t.converters.dcm2nii import convert_DICOM_to_Multi_NIFTI
+
+
+def nnunet_preprocess(dataset_id: str, nnunet_adapter: NNUNetV2Adapter):
+    nnunet_adapter.preprocess(dataset_id)
 
 
 def convert_dicom_dir_to_nnunet_dataset(
@@ -29,7 +35,7 @@ def convert_dicom_dir_to_nnunet_dataset(
     sample_number: str,
     data_tag: str = "cus",
     extension: str = "nii.gz",
-) -> None:
+) -> str:
     """
     Converts dicom_dir into nnUnet format dataset
 
@@ -63,22 +69,39 @@ def convert_dicom_dir_to_nnunet_dataset(
     convert_dicom_to_nifti(dicom_dir, img_save_path, seg_save_path, seg_map)
     make_dataset_json_file(dataset_dir, seg_map=seg_map)
     append_data_to_db(
-        dataset_id, sample_number, get_immediate_dicom_parent_dir(dicom_dir)
+        dataset_id,
+        sample_number,
+        get_immediate_dicom_parent_dir(dicom_dir),
+        dataset_dir,
     )
+    return dataset_dir
 
 
-def append_data_to_db(dataset_id, sample_number, dataset_dir):
+def append_data_to_db(
+    dataset_id,
+    sample_number,
+    dcm_root_dir,
+    dataset_dir,
+):
     """
     Adds data to CSV file for later usage
     """
+    db_path = f"{dataset_dir}/{DB_NAME}"
+
     data = {
         "DatasetID": dataset_id,
         "SampleNumber": sample_number,
-        "DICOMRootDir": dataset_dir,
+        "DICOMRootDir": dcm_root_dir,
     }
-    with open(CSV_FILE_PATH, "a") as fp:
-        csv = DictWriter(fp, fieldnames=data.keys())
-        csv.writerow(data)
+
+    exists = os.path.exists(db_path)
+
+    with open(db_path, "a+") as fp:
+        csv_writer = DictWriter(fp, fieldnames=data.keys())
+        if exists:
+            csv_writer.writerow(data)
+        else:
+            csv_writer.writeheader()
 
 
 def get_data_save_paths(
@@ -192,3 +215,7 @@ def make_dataset_json_file(dataset_dir, seg_map):
 
     with open(f"{dataset_dir}/dataset.json", "w", encoding="utf-8") as f:
         json.dump(json_data, f, ensure_ascii=False, indent=4)
+
+
+def clear_old_training_data(dataset_id, dataset_name):
+    shutil.rmtree(f"{BASE_DIR}/Dataset{dataset_id}_{dataset_name}")
