@@ -68,13 +68,14 @@ def preprocess(root_dir, dataset_id, dataset_name, start):
             dataset_id,
             dataset_name,
             sample_number,
+            only_original=False,
             data_tag="seg",
             extension="nii.gz",
         )
         nnunet_preprocess(dataset_id, default_nnunet_adapter)
 
 
-@cli.command(help="Generate Predictions from trained model (TODO: incomplete)")
+@cli.command(help="Generate Predictions from trained model")
 @click.option(
     "--preds-dir",
     "-p",
@@ -86,7 +87,7 @@ def preprocess(root_dir, dataset_id, dataset_name, start):
         writable=True,
     ),
     required=True,
-    help="Directory containing predicted labels of the dataset",
+    help="Output Directory",
 )
 @click.option(
     "--root-dir",
@@ -99,7 +100,7 @@ def preprocess(root_dir, dataset_id, dataset_name, start):
         writable=True,
     ),
     required=True,
-    help="Directory containing Data of the dataset",
+    help="Directory containing Raw Extracted Data of the dataset",
 )
 @click.option(
     "--dataset-name",
@@ -115,7 +116,8 @@ def preprocess(root_dir, dataset_id, dataset_name, start):
     required=True,
     help="ID of the dataset",
 )
-def predict(preds_dir, dataset_id, dataset_name, root_dir):
+@click.option("--only-original", is_flag=True)
+def predict(preds_dir, dataset_id, dataset_name, root_dir, only_original):
     clear_old_training_data(dataset_id, dataset_name)
     all_dicom_dirs = [f.path for f in os.scandir(root_dir) if f.is_dir()]
 
@@ -129,6 +131,7 @@ def predict(preds_dir, dataset_id, dataset_name, root_dir):
             dataset_id,
             dataset_name,
             sample_number,
+            only_original=only_original,
             data_tag="seg",
             extension="nii.gz",
         )

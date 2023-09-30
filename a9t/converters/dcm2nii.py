@@ -24,6 +24,7 @@ def convert_DICOM_to_Multi_NIFTI(
     mask_foreground_value=255,
     convert_original_dicom=True,
     series_id=None,
+    only_original:bool = True,
 ):
     """
     Converts A DICOM and DICOM RT Struct file to nii
@@ -41,68 +42,72 @@ def convert_DICOM_to_Multi_NIFTI(
     :raise UnsupportedTypeException: Raised when conversion is not supported.
     :raise ValueError: Raised when mask_background_value or mask_foreground_value is invalid.
     """
-    output_dir = os.path.join(output_dir, "")
-
-    if not os.path.exists(rt_struct_file_path):
-        raise PathDoesNotExistException(
-            f"rtstruct path does not exist: {rt_struct_file_path}"
-        )
-
-    if not os.path.exists(dicom_file_path):
-        raise PathDoesNotExistException(
-            f"DICOM path does not exists: {dicom_file_path}"
-        )
-
-    if mask_background_value < 0 or mask_background_value > 255:
-        raise ValueError(
-            f"Invalid value for mask_background_value: {mask_background_value}, must be between 0 and 255"
-        )
-
-    if mask_foreground_value < 0 or mask_foreground_value > 255:
-        raise ValueError(
-            f"Invalid value for mask_foreground_value: {mask_foreground_value}, must be between 0 and 255"
-        )
-
-    if structures is None:
-        structures = []
-
-    os.makedirs(output_dir, exist_ok=True)
-
-    rtreader = RtStructInputAdapter()
-
-    all_rt_structs = rtreader.ingest(rt_struct_file_path)
+    nii_output_adapter = NiiOutputAdapter()
     dicom_image = DcmInputAdapter().ingest(dicom_file_path, series_id=series_id)
 
-    dcm_patient_coords_to_mask = DcmPatientCoords2Mask()
-    nii_output_adapter = NiiOutputAdapter()
-    for rtstruct in all_rt_structs:
-        if len(structures) == 0 or rtstruct["name"] in structures:
-            if "sequence" not in rtstruct:
-                print(
-                    "Skipping mask {} no shape/polygon found".format(rtstruct["name"])
-                )
-                continue
+    if not only_original:
+        output_dir = os.path.join(output_dir, "")
 
-            print("Working on mask {}".format(rtstruct["name"]))
-            try:
-                mask = dcm_patient_coords_to_mask.convert(
-                    rtstruct["sequence"],
-                    dicom_image,
-                    mask_background_value,
-                    mask_foreground_value,
-                )
-            except ContourOutOfBoundsException:
-                print(
-                    f'Structure {rtstruct["name"]} is out of bounds, ignoring contour!'
-                )
-                continue
+        if not os.path.exists(rt_struct_file_path):
+            raise PathDoesNotExistException(
+                f"rtstruct path does not exist: {rt_struct_file_path}"
+            )
 
-            mask.CopyInformation(dicom_image)
+        if not os.path.exists(dicom_file_path):
+            raise PathDoesNotExistException(
+                f"DICOM path does not exists: {dicom_file_path}"
+            )
 
-            mask_filename = f'{rtstruct["name"]}'
+        if mask_background_value < 0 or mask_background_value > 255:
+            raise ValueError(
+                f"Invalid value for mask_background_value: {mask_background_value}, must be between 0 and 255"
+            )
 
-            # Trailing Slash present in output dir
-            nii_output_adapter.write(mask, f"{output_dir}{mask_filename}", gzip)
+        if mask_foreground_value < 0 or mask_foreground_value > 255:
+            raise ValueError(
+                f"Invalid value for mask_foreground_value: {mask_foreground_value}, must be between 0 and 255"
+            )
+
+        if structures is None:
+            structures = []
+
+        os.makedirs(output_dir, exist_ok=True)
+
+        rtreader = RtStructInputAdapter()
+
+        all_rt_structs = rtreader.ingest(rt_struct_file_path)
+
+        dcm_patient_coords_to_mask = DcmPatientCoords2Mask()
+        for rtstruct in all_rt_structs:
+            if len(structures) == 0 or rtstruct["name"] in structures:
+                if "sequence" not in rtstruct:
+                    print(
+                        "Skipping mask {} no shape/polygon found".format(rtstruct["name"])
+                    )
+                    continue
+
+                print("Working on mask {}".format(rtstruct["name"]))
+                try:
+                    mask = dcm_patient_coords_to_mask.convert(
+                        rtstruct["sequence"],
+                        dicom_image,
+                        mask_background_value,
+                        mask_foreground_value,
+                    )
+                except ContourOutOfBoundsException:
+                    print(
+                        f'Structure {rtstruct["name"]} is out of bounds, ignoring contour!'
+                    )
+                    continue
+
+                mask.CopyInformation(dicom_image)
+
+                mask_filename = f'{rtstruct["name"]}'.replace("/", "_")
+
+                # Trailing Slash present in output dir
+                mask_path = f"{output_dir}{mask_filename}"
+                print("Mask saved at:", mask_path)
+                nii_output_adapter.write(mask, mask_path, gzip)
 
     if convert_original_dicom:
         print("Converting original DICOM to nii")

@@ -33,7 +33,8 @@ def convert_dicom_dir_to_nnunet_dataset(
     dataset_id: str,
     dataset_name: str,
     sample_number: str,
-    data_tag: str = "cus",
+    only_original:bool,
+    data_tag: str = "seg",
     extension: str = "nii.gz",
 ) -> str:
     """
@@ -66,7 +67,7 @@ def convert_dicom_dir_to_nnunet_dataset(
     )
 
     seg_map = ALL_SEG_MAP[dataset_name]
-    convert_dicom_to_nifti(dicom_dir, img_save_path, seg_save_path, seg_map)
+    convert_dicom_to_nifti(dicom_dir, img_save_path, seg_save_path, seg_map, only_original)
     make_dataset_json_file(dataset_dir, seg_map=seg_map)
     append_data_to_db(
         dataset_id,
@@ -102,6 +103,8 @@ def append_data_to_db(
             csv_writer.writerow(data)
         else:
             csv_writer.writeheader()
+            csv_writer.writerow(data)
+
 
 
 def get_data_save_paths(
@@ -155,7 +158,7 @@ def get_immediate_dicom_parent_dir(dicom_dir):
     return str(one_dcm_path.parent)
 
 
-def convert_dicom_to_nifti(dicom_dir, img_save_path, seg_save_path, seg_map):
+def convert_dicom_to_nifti(dicom_dir, img_save_path, seg_save_path, seg_map, only_original):
     with tempfile.TemporaryDirectory(dir=TEMP_DIR_BASE) as temp_dir:
         rt_file_path = get_rt_file_path(dicom_dir)
         dicom_dir_immediate_parent = get_immediate_dicom_parent_dir(dicom_dir)
@@ -167,8 +170,10 @@ def convert_dicom_to_nifti(dicom_dir, img_save_path, seg_save_path, seg_map):
             mask_background_value=0,
             mask_foreground_value=1,
             convert_original_dicom=True,
+            only_original=only_original,
         )
-        combine_masks_to_multilabel_file(temp_dir, seg_save_path, seg_map)
+        if not only_original:
+            combine_masks_to_multilabel_file(temp_dir, seg_save_path, seg_map)
 
 
 def combine_masks_to_multilabel_file(masks_dir, multilabel_file, seg_map):

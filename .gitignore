@@ -276,4 +276,7 @@ pyrightconfig.json
 data/**
 
 ignore.py
+
 temp/**
+
+preds/**

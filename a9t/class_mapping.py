@@ -2,13 +2,14 @@
 # WARNING: Label Ordering VVV important, overwriting possible. Put largest labels first
 ALL_SEG_MAP = {
     "TSPrime": {
-        1: "body",
-        2: "bladder",
-        3: "anorectum",
-        4: "bag_bowel",
-        5: "femur_head_l",
-        6: "femur_head_r",
-        7: "penile bulb",
+        # Harmonized needed
+        1: "Body",
+        2: "Bladder",
+        3: "Anorectum",
+        4: "Bag_Bowel",
+        5: "Femur_Head_L",
+        6: "Femur_Head_R",
+        7: "PenileBulb",
         8: "ctvp",
         9: "ctvn",
     },

@@ -93,7 +93,12 @@ class NNUNetV2Adapter:
             "-device",
             "cuda",
         ]
+        run_args = self.process_args(run_args)
         self._run_subprocess(run_args)
+
+    @staticmethod
+    def process_args(run_args: list):
+        return [str(i) for i in run_args]
 
     @staticmethod
     def _run_subprocess(run_args):
