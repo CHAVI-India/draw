@@ -117,15 +117,15 @@ def get_data_save_paths(
     if BASE_DIR is None:
         raise ValueError(f"Value of {NNUNET_RAW_DATA_ENV_KEY} is not set. Aborting...")
 
-    dataset_dir = f"{BASE_DIR}/Dataset{dataset_id}_{dataset_name}"
-    train_dir, labels_dir = f"{dataset_dir}/imagesTr", f"{dataset_dir}/labelsTr"
+    dataset_dir = os.path.join(BASE_DIR, f"Dataset{dataset_id}_{dataset_name}")
+    train_dir, labels_dir = os.path.join(dataset_dir, "imagesTr"), os.path.join(dataset_dir, "labelsTr")
 
     os.makedirs(train_dir, exist_ok=True)
     os.makedirs(labels_dir, exist_ok=True)
 
     img_save_path, seg_save_path = (
-        f"{train_dir}/{data_tag}_{sample_number}_0000.{extension}",
-        f"{labels_dir}/{data_tag}_{sample_number}.{extension}",
+        f"{train_dir}{os.path.sep}{data_tag}_{sample_number}_0000.{extension}",
+        f"{labels_dir}{os.path.sep}{data_tag}_{sample_number}.{extension}",
     )
     return img_save_path, seg_save_path, dataset_dir
 
@@ -160,7 +160,9 @@ def get_immediate_dicom_parent_dir(dicom_dir):
 
 def convert_dicom_to_nifti(dicom_dir, img_save_path, seg_save_path, seg_map, only_original):
     with tempfile.TemporaryDirectory(dir=TEMP_DIR_BASE) as temp_dir:
-        rt_file_path = get_rt_file_path(dicom_dir)
+        rt_file_path=None
+        if not only_original:
+            rt_file_path = get_rt_file_path(dicom_dir)
         dicom_dir_immediate_parent = get_immediate_dicom_parent_dir(dicom_dir)
         convert_DICOM_to_Multi_NIFTI(
             rt_file_path,
@@ -223,4 +225,6 @@ def make_dataset_json_file(dataset_dir, seg_map):
 
 
 def clear_old_training_data(dataset_id, dataset_name):
-    shutil.rmtree(f"{BASE_DIR}/Dataset{dataset_id}_{dataset_name}")
+    path = f"{BASE_DIR}{os.path.sep}Dataset{dataset_id}_{dataset_name}"
+    if os.path.exists(path):
+        shutil.rmtree(path)

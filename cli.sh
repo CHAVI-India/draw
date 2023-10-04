@@ -1,5 +1,5 @@
 # Activate VENV
-source .venv39/Scripts/activate
+source bin/env.sh
 
 # main cli
-python ./main.py
+python ./main.py "$@"

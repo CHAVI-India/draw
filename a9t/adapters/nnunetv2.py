@@ -112,5 +112,7 @@ class NNUNetV2Adapter:
 
 
 default_nnunet_adapter = NNUNetV2Adapter(
-    "data/nnUNet_raw", "data/nnUNet_preprocessed", "data/nnUNet_results"
+    os.path.join("data", "nnUNet_raw"), 
+    os.path.join("data", "nnUNet_preprocessed"), 
+    os.path.join("data", "nnUNet_results"),
 )

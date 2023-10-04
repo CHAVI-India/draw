@@ -1,4 +1,9 @@
 import json
+import time
+from datetime import datetime
+import pytz
+
+IST = pytz.timezone("Asia/Kolkata")
 
 from a9t.adapters.nnunetv2 import NNUNetV2Adapter, default_nnunet_adapter
 from a9t.constants import MODEL_CONFIG, DEFAULT_FOLD
@@ -48,6 +53,11 @@ def generate_labels_on_data(
     output_dir,
     nnunet_adapter: NNUNetV2Adapter = default_nnunet_adapter,
 ):
+    # start = time.time()
+    # print("RT START:", start)
+    start = datetime.now(IST)
+    print("RT START:", start)
+
     nnunet_adapter.predict_folder(
         samples_dir,
         output_dir,
@@ -55,6 +65,17 @@ def generate_labels_on_data(
         dataset_id,
         DEFAULT_FOLD,
     )
+    # stop = time.time()
+    # print("RT STOP:", stop)
+
+    print("-"*50)
+    stop = datetime.now(IST)
+    print("RT START:", start)
+    print("RT STOP:", stop)
+    print("-"*50)
+    
+    # time_diff = (stop - start)
+    # print("RT PRED DONE. TIME TAKEN:", stop - start)
 
 
 def generate_final_predicitons():

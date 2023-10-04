@@ -135,7 +135,7 @@ def predict(preds_dir, dataset_id, dataset_name, root_dir, only_original):
             data_tag="seg",
             extension="nii.gz",
         )
-    generate_labels_on_data(f"{dataset_dir}/imagesTr", dataset_id, preds_dir)
+    generate_labels_on_data(os.path.join(dataset_dir, "imagesTr"), dataset_id, preds_dir)
     convert_nifti_outputs_to_dicom(preds_dir, dataset_dir, dataset_id, dataset_name)
 
 
