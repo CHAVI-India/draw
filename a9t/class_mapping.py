@@ -1,17 +1,25 @@
 # NOTE: The labels are as per harmonization scheme
 # WARNING: Label Ordering VVV important, overwriting possible. Put largest labels first
+"""
+Anorectum
+Bladder
+Bag_Bowel
+Femur_L
+Femur_R
+Penilebulb
+"""
 ALL_SEG_MAP = {
+
     "TSPrime": {
-        # Harmonized needed
-        1: "Body",
-        2: "Bladder",
-        3: "Anorectum",
-        4: "Bag_Bowel",
-        5: "Femur_Head_L",
-        6: "Femur_Head_R",
-        7: "PenileBulb",
-        8: "ctvp",
-        9: "ctvn",
+        # Harmonized
+        1: "Bladder",
+        2: "Anorectum",
+        3: "Bag_Bowel",
+        4: "Femur_L",
+        5: "Femur_R",
+        6: "Penilebulb",
+        # 8: "ctvp",
+        # 9: "ctvn",
     },
     "TSGyne": {
         1: "Body",

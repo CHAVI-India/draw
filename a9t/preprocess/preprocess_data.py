@@ -167,6 +167,7 @@ def convert_dicom_to_nifti(dicom_dir, img_save_path, seg_save_path, seg_map, onl
             dicom_dir_immediate_parent,
             temp_dir,
             img_save_path,
+            structures=list(seg_map.values()),
             mask_background_value=0,
             mask_foreground_value=1,
             convert_original_dicom=True,
