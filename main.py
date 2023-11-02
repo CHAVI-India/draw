@@ -59,6 +59,7 @@ def cli():
 def preprocess(root_dir, dataset_id, dataset_name, start):
     clear_old_training_data(dataset_id, dataset_name)
     all_dicom_dirs = [f.path for f in os.scandir(root_dir) if f.is_dir()]
+    print(len(all_dicom_dirs))
 
     for idx, dicom_dir in enumerate(all_dicom_dirs, start=start):
         sample_number = str(idx).zfill(3)
@@ -72,7 +73,7 @@ def preprocess(root_dir, dataset_id, dataset_name, start):
             data_tag="seg",
             extension="nii.gz",
         )
-        nnunet_preprocess(dataset_id, default_nnunet_adapter)
+    nnunet_preprocess(dataset_id, default_nnunet_adapter)
 
 
 @cli.command(help="Generate Predictions from trained model")
@@ -116,7 +117,7 @@ def preprocess(root_dir, dataset_id, dataset_name, start):
     required=True,
     help="ID of the dataset",
 )
-@click.option("--only-original", is_flag=True)
+@click.option("--only-original", is_flag=True, help="Convert only original or both DICOM and RT")
 def predict(preds_dir, dataset_id, dataset_name, root_dir, only_original):
     clear_old_training_data(dataset_id, dataset_name)
     all_dicom_dirs = [f.path for f in os.scandir(root_dir) if f.is_dir()]
@@ -125,6 +126,7 @@ def predict(preds_dir, dataset_id, dataset_name, root_dir, only_original):
 
     for idx, dicom_dir in enumerate(all_dicom_dirs):
         sample_number = str(idx).zfill(3)
+        print("Currently at", dicom_dir)
 
         dataset_dir = convert_dicom_dir_to_nnunet_dataset(
             dicom_dir,

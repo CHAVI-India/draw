@@ -280,3 +280,6 @@ ignore.py
 temp/**
 
 preds/**
+
+tsprime_ctvn
+*.zip

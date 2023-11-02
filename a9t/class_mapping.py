@@ -7,19 +7,24 @@ Bag_Bowel
 Femur_L
 Femur_R
 Penilebulb
+Femur_Head_L
 """
 ALL_SEG_MAP = {
 
-    "TSPrime": {
+    "TSPrimeOrgans": {
         # Harmonized
         1: "Bladder",
         2: "Anorectum",
         3: "Bag_Bowel",
-        4: "Femur_L",
-        5: "Femur_R",
+        4: "Femur_Head_L",
+        5: "Femur_Head_R",
         6: "Penilebulb",
-        # 8: "ctvp",
-        # 9: "ctvn",
+    },
+    "TSPrimeCTVP": {
+        1: "Ctvp"
+    },
+    "TSPrimeCTVN": {
+        1: "Ctvn"
     },
     "TSGyne": {
         1: "Body",

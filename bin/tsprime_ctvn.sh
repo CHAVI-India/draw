@@ -9,7 +9,7 @@ DATASET_ID=722
 DATASET_NAME=TSPrimeCTVN
 
 python ./main.py preprocess \
-    --root-dir data/raw/TS_PRIME_3 \
+    --root-dir ./data/raw/TS_PRIME_3 \
     --dataset-id $DATASET_ID \
     --dataset-name $DATASET_NAME
 
@@ -18,4 +18,4 @@ echo "Completed Preprocessing of data"
 nnUNetv2_plan_and_preprocess -d $DATASET_ID --verify_dataset_integrity
 
 # Train
-nnUNetv2_train $DATASET_ID 3d_fullres 0
+#nnUNetv2_train $DATASET_ID 3d_fullres 0

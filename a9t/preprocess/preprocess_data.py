@@ -160,6 +160,7 @@ def get_immediate_dicom_parent_dir(dicom_dir):
 
 def convert_dicom_to_nifti(dicom_dir, img_save_path, seg_save_path, seg_map, only_original):
     with tempfile.TemporaryDirectory(dir=TEMP_DIR_BASE) as temp_dir:
+        print("Working on", dicom_dir)
         rt_file_path = get_rt_file_path(dicom_dir)
         dicom_dir_immediate_parent = get_immediate_dicom_parent_dir(dicom_dir)
         convert_DICOM_to_Multi_NIFTI(
@@ -224,4 +225,6 @@ def make_dataset_json_file(dataset_dir, seg_map):
 
 
 def clear_old_training_data(dataset_id, dataset_name):
-    shutil.rmtree(f"{BASE_DIR}/Dataset{dataset_id}_{dataset_name}")
+    dir_path = f"{BASE_DIR}/Dataset{dataset_id}_{dataset_name}"
+    if os.path.exists(dir_path):
+        shutil.rmtree(dir_path)
