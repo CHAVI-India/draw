@@ -53,7 +53,6 @@ def get_dcm_root_from_csv(dataset_id: int, sample_no: str, dataset_dir):
         },
         index_col=None,
     )
-    print(df)
     op = df.loc[(df["DatasetID"] == int(dataset_id)) & (df["SampleNumber"] == str(sample_no))]
     if not op.empty:
         dcm_root_dir = op["DICOMRootDir"].iloc[0]
@@ -125,18 +124,18 @@ def get_sample_number_from_nifti_path(nifti_path, delim="seg_"):
     return sample_no
 
 
-def convert_nifti_outputs_to_dicom(preds_dir, dataset_dir, dataset_id, dataset_name):
+def convert_nifti_outputs_to_dicom(preds_dir, dataset_dir, dataset_id, dataset_name, output_dir=None):
     curr_time = datetime.now().strftime("%Y_%m_%d_%H_%M")
-    dataset_tag = "seg"
     for nifti_file_path in glob.glob(f"{preds_dir}/seg**.nii.gz"):
         sample_no = get_sample_number_from_nifti_path(nifti_file_path)
-        print("Processing Sample: ", sample_no)
-        dcm_root_dir, dcm_parent_folder = get_dcm_root_from_csv(
-            dataset_id, sample_no, dataset_dir
-        )
-        convert_multilabel_nifti_to_rtstruct(
-            nifti_file_path=nifti_file_path,
-            dicom_dir=dcm_root_dir,
-            save_dir=f"{preds_dir}/{dataset_id}/{curr_time}/{dcm_parent_folder}",
-            label_to_name_map=ALL_SEG_MAP[dataset_name],
-        )
+        if sample_no in ["006", "021", "022", "030", "032"]:
+            print("Processing Sample: ", sample_no)
+            dcm_root_dir, dcm_parent_folder = get_dcm_root_from_csv(
+                dataset_id, sample_no, dataset_dir
+            )
+            convert_multilabel_nifti_to_rtstruct(
+                nifti_file_path=nifti_file_path,
+                dicom_dir=dcm_root_dir,
+                save_dir=f"{output_dir}/{dataset_id}/{curr_time}/{dcm_parent_folder}",
+                label_to_name_map=ALL_SEG_MAP[dataset_name],
+            )

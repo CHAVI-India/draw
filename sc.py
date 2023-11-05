@@ -1,14 +1,8 @@
-import pandas as pd
+from a9t.converters.nifti2rt import convert_nifti_outputs_to_dicom
+dataset_name="TSPrimeOrgans"
+preds_dir="data/nnUNet_results/Dataset720_TSPrime/imagesTr_output"
+dataset_dir="data/nnUNet_raw/Dataset720_TSPrime"
+dataset_id=720
+output_dir="data/results/rt"
 
-df = pd.read_csv(
-        "data/nnUNet_raw/Dataset720_TSPrime/db.csv",
-        dtype={
-            "DatasetID": int,
-            "SampleNumber": str,
-            "DICOMRootDir": str,
-        },
-        index_col=None,
-    )
-print(df)
-op = df.loc[(df["DatasetID"] == "720") & (df["SampleNumber"] == "000")]
-print(op)
+convert_nifti_outputs_to_dicom(preds_dir, dataset_dir, dataset_id, dataset_name, output_dir)
