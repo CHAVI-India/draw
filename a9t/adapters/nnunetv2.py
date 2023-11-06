@@ -64,6 +64,7 @@ class NNUNetV2Adapter:
         model_config,
         dataset_id,
         fold,
+        trainer_name="nnUNetTrainer",
         checkpoint_name="checkpoint_best.pth",
     ):
         self.set_env()
@@ -82,22 +83,18 @@ class NNUNetV2Adapter:
             "--verbose",
             "-chk",
             checkpoint_name,
-            "-npp",
-            1,
-            "-nps",
-            1,
-            "-num_parts",
-            1,
-            "-part_id",
-            0,
+            "--disable_tta",
             "-device",
             "cuda",
+            "-tr",
+            trainer_name,
         ]
         self._run_subprocess(run_args)
 
     @staticmethod
     def _run_subprocess(run_args):
         """Synchronous call to nnunet"""
+        run_args = [str(i) for i in run_args]
         subprocess.run(
             run_args,
             stdout=sys.stdout,

@@ -44,21 +44,27 @@ TS_PRIME_MAP = {
             5: "Femur_Head_R",
             6: "Penilebulb",
         },
+        "trainer_name": "nnUNetTrainerNoMirroring",
+        "postprocess": True,
     },
     721: {
-        "name": "TSPrimeCtvp",
-        "config": "2d_fullres",
+        "name": "TSPrimeCTVP",
+        "config": "2d",
         "map": {
             1: "Ctvp",
         },
+        "trainer_name": "nnUNetTrainer",
+        "postprocess": False,
     },
     722: {
-        "name": "TSPrimeCtvn",
+        "name": "TSPrimeCTVN",
         # Update config as needed
         "config": "3d_fullres",
         "map": {
             1: "Ctvn",
         },
+        "trainer_name": "nnUNetTrainer",
+        "postprocess": False,
     },
 }
 

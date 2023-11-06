@@ -48,6 +48,7 @@ def generate_labels_on_data(
     dataset_id,
     output_dir,
     model_config,
+    trainer_name,
     nnunet_adapter: NNUNetV2Adapter = default_nnunet_adapter,
 ):
     os.makedirs(output_dir, exist_ok=True)
@@ -57,6 +58,7 @@ def generate_labels_on_data(
         model_config,
         dataset_id,
         DEFAULT_FOLD,
+        trainer_name
     )
 
 

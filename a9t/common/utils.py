@@ -49,7 +49,6 @@ def get_files_not_rt(dicom_dir) -> list[str]:
     ]
 
 
-def clear_old_training_data(dataset_id, dataset_name):
-    p = f"{BASE_DIR}/Dataset{dataset_id}_{dataset_name}"
-    if os.path.exists(p):
-        shutil.rmtree(p)
+def remove_stuff(path):
+    if os.path.exists(path):
+        shutil.rmtree(path)

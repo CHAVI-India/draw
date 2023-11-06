@@ -8,12 +8,14 @@ import click
 
 from a9t.adapters.nnunetv2 import default_nnunet_adapter
 from a9t.common.nifti2rt import convert_nifti_outputs_to_dicom
-from a9t.common.utils import clear_old_training_data, get_all_folders_from_raw_dir
+from a9t.common.utils import remove_stuff, get_all_folders_from_raw_dir
+from a9t.constants import BASE_DIR
 from a9t.mapping import ALL_SEG_MAP
 from a9t.preprocess.preprocess_data import (
     convert_dicom_dir_to_nnunet_dataset,
     nnunet_preprocess,
 )
+from a9t.predict.evaluate import generate_labels_on_data
 
 
 @click.group(
@@ -55,7 +57,7 @@ def cli():
     help="The sample number to start putting data from",
 )
 def preprocess(root_dir, dataset_id, dataset_name, start):
-    clear_old_training_data(dataset_id, dataset_name)
+    remove_stuff(dataset_id, dataset_name)
     all_dicom_dirs = [f.path for f in os.scandir(root_dir) if f.is_dir()]
 
     for idx, dicom_dir in enumerate(all_dicom_dirs, start=start):
@@ -123,9 +125,10 @@ def predict(preds_dir, dataset_name, root_dir, only_original):
         model_config = dataset_specific_map["config"]
         dataset_name = dataset_specific_map["name"]
         seg_map = dataset_specific_map["map"]
+        trainer_name = dataset_specific_map["trainer_name"]
 
-        clear_old_training_data(dataset_id, dataset_name)
         dataset_dir = f"data/nnUNet_raw/Dataset{dataset_id}_{dataset_name}"
+        remove_stuff(dataset_dir)
 
         for idx, dicom_dir in enumerate(all_dicom_dirs):
             sample_number = str(idx).zfill(3)
@@ -142,8 +145,9 @@ def predict(preds_dir, dataset_name, root_dir, only_original):
             )
         tr_images = os.path.join(dataset_dir, "imagesTr")
         model_pred_dir = os.path.join(preds_dir, parent_dataset_name, str(dataset_id))
+        remove_stuff(model_pred_dir)
         final_output_dir = os.path.join(preds_dir, parent_dataset_name, "results")
-        # generate_labels_on_data(tr_images, dataset_id, model_pred_dir, model_config)
+        generate_labels_on_data(tr_images, dataset_id, model_pred_dir, model_config, trainer_name)
         # apply_postprocessing()
         convert_nifti_outputs_to_dicom(
             model_pred_dir,
