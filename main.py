@@ -2,19 +2,17 @@
 CLI of AutoSegment (A9T) Pipeline
 """
 import os
+from datetime import datetime
 
 import click
 
 from a9t.adapters.nnunetv2 import default_nnunet_adapter
-from a9t.class_mapping import ALL_SEG_MAP
-from a9t.converters.nifti2rt import convert_nifti_outputs_to_dicom
-from a9t.predict.evaluate import (
-    generate_labels_on_data,
-)
+from a9t.common.nifti2rt import convert_nifti_outputs_to_dicom
+from a9t.common.utils import clear_old_training_data, get_all_folders_from_raw_dir
+from a9t.mapping import ALL_SEG_MAP
 from a9t.preprocess.preprocess_data import (
     convert_dicom_dir_to_nnunet_dataset,
     nnunet_preprocess,
-    clear_old_training_data,
 )
 
 
@@ -70,11 +68,12 @@ def preprocess(root_dir, dataset_id, dataset_name, start):
             sample_number,
             data_tag="seg",
             extension="nii.gz",
+            only_original=False,
         )
         nnunet_preprocess(dataset_id, default_nnunet_adapter)
 
 
-@cli.command(help="Generate Predictions from trained model (TODO: incomplete)")
+@cli.command(help="Generate Predictions from trained model")
 @click.option(
     "--preds-dir",
     "-p",
@@ -86,7 +85,7 @@ def preprocess(root_dir, dataset_id, dataset_name, start):
         writable=True,
     ),
     required=True,
-    help="Directory containing predicted labels of the dataset",
+    help="Output Directory that will contain final labels",
 )
 @click.option(
     "--root-dir",
@@ -99,7 +98,7 @@ def preprocess(root_dir, dataset_id, dataset_name, start):
         writable=True,
     ),
     required=True,
-    help="Directory containing Data of the dataset",
+    help="Directory containing other DICOM parent directories",
 )
 @click.option(
     "--dataset-name",
@@ -109,31 +108,51 @@ def preprocess(root_dir, dataset_id, dataset_name, start):
     help="Name of the dataset",
 )
 @click.option(
-    "--dataset-id",
-    "-d",
-    type=str,
-    required=True,
-    help="ID of the dataset",
+    "--only-original",
+    is_flag=True,
 )
-def predict(preds_dir, dataset_id, dataset_name, root_dir):
-    clear_old_training_data(dataset_id, dataset_name)
-    all_dicom_dirs = [f.path for f in os.scandir(root_dir) if f.is_dir()]
+def predict(preds_dir, dataset_name, root_dir, only_original):
+    task_map = ALL_SEG_MAP[dataset_name]
+    all_dicom_dirs = get_all_folders_from_raw_dir(root_dir)
+    exp_number = datetime.now().strftime("%Y-%m-%d.%H-%M")
+    parent_dataset_name = dataset_name
 
-    dataset_dir = None
+    for dataset_id in task_map.keys():
+        print("Processing ID", dataset_id)
+        dataset_specific_map = task_map[dataset_id]
+        model_config = dataset_specific_map["config"]
+        dataset_name = dataset_specific_map["name"]
+        seg_map = dataset_specific_map["map"]
 
-    for idx, dicom_dir in enumerate(all_dicom_dirs):
-        sample_number = str(idx).zfill(3)
+        clear_old_training_data(dataset_id, dataset_name)
+        dataset_dir = f"data/nnUNet_raw/Dataset{dataset_id}_{dataset_name}"
 
-        dataset_dir = convert_dicom_dir_to_nnunet_dataset(
-            dicom_dir,
+        for idx, dicom_dir in enumerate(all_dicom_dirs):
+            sample_number = str(idx).zfill(3)
+
+            dataset_dir = convert_dicom_dir_to_nnunet_dataset(
+                dicom_dir,
+                dataset_id,
+                dataset_name,
+                sample_number,
+                seg_map,
+                data_tag="seg",
+                extension="nii.gz",
+                only_original=only_original,
+            )
+        tr_images = os.path.join(dataset_dir, "imagesTr")
+        model_pred_dir = os.path.join(preds_dir, parent_dataset_name, str(dataset_id))
+        final_output_dir = os.path.join(preds_dir, parent_dataset_name, "results")
+        # generate_labels_on_data(tr_images, dataset_id, model_pred_dir, model_config)
+        # apply_postprocessing()
+        convert_nifti_outputs_to_dicom(
+            model_pred_dir,
+            final_output_dir,
+            dataset_dir,
             dataset_id,
-            dataset_name,
-            sample_number,
-            data_tag="seg",
-            extension="nii.gz",
+            exp_number,
+            seg_map,
         )
-    generate_labels_on_data(f"{dataset_dir}/imagesTr", dataset_id, preds_dir)
-    convert_nifti_outputs_to_dicom(preds_dir, dataset_dir, dataset_id, dataset_name)
 
 
 @cli.command()

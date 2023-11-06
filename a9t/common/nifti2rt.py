@@ -1,6 +1,6 @@
 import glob
 import os
-from datetime import datetime
+import warnings
 
 import nibabel as nib
 import numpy as np
@@ -25,7 +25,14 @@ def convert_multilabel_nifti_to_rtstruct(
 
     os.makedirs(save_dir, exist_ok=True)
 
-    rtstruct = RTStructBuilder.create_new(dicom_dir)
+    rt_path = f"{save_dir}/Pred_RT.dcm"
+
+    rtstruct = None
+    if os.path.exists(rt_path):
+        rtstruct = RTStructBuilder.create_from(dicom_dir, rt_path)
+    else:
+        rtstruct = RTStructBuilder.create_new(dicom_dir)
+
     nifti_mask = nib.load(nifti_file_path)
     np_mask = np.asanyarray(nifti_mask.dataobj)
     np_mask = np.transpose(np_mask, [1, 0, 2])
@@ -36,16 +43,15 @@ def convert_multilabel_nifti_to_rtstruct(
         curr_mask = np_mask == idx
         rtstruct.add_roi(mask=curr_mask, name=name)
 
-    rtstruct.save(f"{save_dir}/Pred_RT.dcm")
+    rtstruct.save(rt_path)
     if debug:
         print("RT saved at:", save_dir)
 
 
 def get_dcm_root_from_csv(dataset_id: int, sample_no: str, dataset_dir):
     # Path and dir name
-    df = pd.read_csv(
+    df = pd.read_json(
         f"{dataset_dir}/{DB_NAME}",
-        header=None,
         dtype={
             "DatasetID": int,
             "SampleNumber": str,
@@ -56,6 +62,7 @@ def get_dcm_root_from_csv(dataset_id: int, sample_no: str, dataset_dir):
     if not op.empty:
         dcm_root_dir = op["DICOMRootDir"].iloc[0]
         return dcm_root_dir, os.path.split(dcm_root_dir)[-1]
+    warnings.warn(f"No DICOM dir:{dataset_id}, {sample_no} not found")
     return "", ""
 
 
@@ -114,16 +121,25 @@ def add_to_output_csv(dataset_id: int, summaries: list[dict], splits, save_path)
     df_op.to_csv(f"{save_path}/dice.csv", index=False)
 
 
-def get_sample_number_from_nifti_path(nifti_path, delim="_seg"):
+def get_sample_number_from_nifti_path(nifti_path, delim="seg_"):
+    print("NIFTI path", nifti_path)
     _, txt = nifti_path.split(delim)
+    txt = txt.strip("_")
     # 014.nii.gz
     return txt.split(".")[0]
 
 
-def convert_nifti_outputs_to_dicom(preds_dir, dataset_dir, dataset_id, dataset_name):
-    curr_time = datetime.now().strftime("%Y_%m_%d_%H_%M")
+def convert_nifti_outputs_to_dicom(
+    model_pred_dir,
+    preds_dir,
+    dataset_dir,
+    dataset_id,
+    exp_number,
+    seg_map,
+):
     dataset_tag = "seg"
-    for nifti_file_path in glob.glob(f"{preds_dir}/**.nii.gz"):
+    print("Model Pred Dir: ", model_pred_dir)
+    for nifti_file_path in glob.glob(f"{model_pred_dir}/**.nii.gz"):
         sample_no = get_sample_number_from_nifti_path(nifti_file_path, dataset_tag)
         print("Processing Sample: ", sample_no)
         dcm_root_dir, dcm_parent_folder = get_dcm_root_from_csv(
@@ -132,6 +148,6 @@ def convert_nifti_outputs_to_dicom(preds_dir, dataset_dir, dataset_id, dataset_n
         convert_multilabel_nifti_to_rtstruct(
             nifti_file_path=nifti_file_path,
             dicom_dir=dcm_root_dir,
-            save_dir=f"{preds_dir}/{curr_time}/{dcm_parent_folder}",
-            label_to_name_map=ALL_SEG_MAP[dataset_name],
+            save_dir=f"{preds_dir}/{exp_number}/{dcm_parent_folder}",
+            label_to_name_map=seg_map,
         )

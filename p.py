@@ -1,6 +1,6 @@
 import os
 from a9t.class_mapping import ALL_SEG_MAP
-from a9t.converters.nifti2rt import (
+from a9t.common.nifti2rt import (
     add_to_output_csv,
     convert_multilabel_nifti_to_rtstruct,
     get_dcm_root_from_csv,

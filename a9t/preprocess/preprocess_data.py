@@ -1,27 +1,22 @@
-# Adapted from https://github.com/wasserth/TotalSegmentator/blob/master/totalsegmentator/dicom_io.py
-# Adapted from https://github.com/Sikerdebaard/dcmrtstruct2nii/tree/master/dcmrtstruct2nii
 import json
 import os
 import os.path
-import shutil
 import tempfile
-from csv import DictWriter
 from glob import glob
 from pathlib import Path
 
 import nibabel as nib
 import numpy as np
-from pydicom import dcmread
 
 from a9t.adapters.nnunetv2 import NNUNetV2Adapter
-from a9t.class_mapping import ALL_SEG_MAP
+from a9t.common.dcm2nii import convert_DICOM_to_Multi_NIFTI
+from a9t.common.utils import get_rt_file_path, read_json, write_json
 from a9t.constants import (
     TEMP_DIR_BASE,
     NNUNET_RAW_DATA_ENV_KEY,
     BASE_DIR,
     DB_NAME,
 )
-from a9t.converters.dcm2nii import convert_DICOM_to_Multi_NIFTI
 
 
 def nnunet_preprocess(dataset_id: str, nnunet_adapter: NNUNetV2Adapter):
@@ -33,8 +28,10 @@ def convert_dicom_dir_to_nnunet_dataset(
     dataset_id: str,
     dataset_name: str,
     sample_number: str,
-    data_tag: str = "cus",
+    seg_map: dict,
+    data_tag: str = "seg",
     extension: str = "nii.gz",
+    only_original=True,
 ) -> str:
     """
     Converts dicom_dir into nnUnet format dataset
@@ -65,8 +62,9 @@ def convert_dicom_dir_to_nnunet_dataset(
         extension,
     )
 
-    seg_map = ALL_SEG_MAP[dataset_name]
-    convert_dicom_to_nifti(dicom_dir, img_save_path, seg_save_path, seg_map)
+    convert_dicom_to_nifti(
+        dicom_dir, img_save_path, seg_save_path, seg_map, only_original
+    )
     make_dataset_json_file(dataset_dir, seg_map=seg_map)
     append_data_to_db(
         dataset_id,
@@ -84,24 +82,23 @@ def append_data_to_db(
     dataset_dir,
 ):
     """
-    Adds data to CSV file for later usage
+    Adds data to JSON file for later usage
     """
     db_path = f"{dataset_dir}/{DB_NAME}"
 
-    data = {
+    sample_data = {
         "DatasetID": dataset_id,
         "SampleNumber": sample_number,
         "DICOMRootDir": dcm_root_dir,
     }
 
-    exists = os.path.exists(db_path)
+    data_file = []
 
-    with open(db_path, "a+") as fp:
-        csv_writer = DictWriter(fp, fieldnames=data.keys())
-        if exists:
-            csv_writer.writerow(data)
-        else:
-            csv_writer.writeheader()
+    if os.path.exists(db_path):
+        data_file = read_json(db_path)
+
+    data_file.append(sample_data)
+    write_json(data_file, db_path)
 
 
 def get_data_save_paths(
@@ -127,35 +124,19 @@ def get_data_save_paths(
     return img_save_path, seg_save_path, dataset_dir
 
 
-def is_rt_file(file_name):
-    f = dcmread(file_name)
-    return f.Modality == "RTSTRUCT"
-
-
-def get_rt_file_path(dicom_dir) -> str:
-    # We expect only 1 RS per dicom series
-    return [
-        file_name
-        for file_name in glob(f"{dicom_dir}/**/**.dcm", recursive=True)
-        if is_rt_file(file_name)
-    ][0]
-
-
-def get_files_not_rt(dicom_dir) -> list[str]:
-    return [
-        file_name
-        for file_name in glob(f"{dicom_dir}/**/**.dcm", recursive=True)
-        if not is_rt_file(file_name)
-    ]
-
-
 def get_immediate_dicom_parent_dir(dicom_dir):
     one_dcm_path = glob(f"{dicom_dir}/**/**.dcm", recursive=True)[0]
     one_dcm_path = Path(one_dcm_path)
     return str(one_dcm_path.parent)
 
 
-def convert_dicom_to_nifti(dicom_dir, img_save_path, seg_save_path, seg_map):
+def convert_dicom_to_nifti(
+    dicom_dir,
+    img_save_path,
+    seg_save_path,
+    seg_map,
+    only_original=True,
+):
     with tempfile.TemporaryDirectory(dir=TEMP_DIR_BASE) as temp_dir:
         rt_file_path = get_rt_file_path(dicom_dir)
         dicom_dir_immediate_parent = get_immediate_dicom_parent_dir(dicom_dir)
@@ -164,11 +145,13 @@ def convert_dicom_to_nifti(dicom_dir, img_save_path, seg_save_path, seg_map):
             dicom_dir_immediate_parent,
             temp_dir,
             img_save_path,
+            structures=list(seg_map.values()),
             mask_background_value=0,
             mask_foreground_value=1,
-            convert_original_dicom=True,
+            only_original=only_original,
         )
-        combine_masks_to_multilabel_file(temp_dir, seg_save_path, seg_map)
+        if not only_original:
+            combine_masks_to_multilabel_file(temp_dir, seg_save_path, seg_map)
 
 
 def combine_masks_to_multilabel_file(masks_dir, multilabel_file, seg_map):
@@ -215,7 +198,3 @@ def make_dataset_json_file(dataset_dir, seg_map):
 
     with open(f"{dataset_dir}/dataset.json", "w", encoding="utf-8") as f:
         json.dump(json_data, f, ensure_ascii=False, indent=4)
-
-
-def clear_old_training_data(dataset_id, dataset_name):
-    shutil.rmtree(f"{BASE_DIR}/Dataset{dataset_id}_{dataset_name}")

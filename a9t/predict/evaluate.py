@@ -1,7 +1,8 @@
 import json
+import os
 
 from a9t.adapters.nnunetv2 import NNUNetV2Adapter, default_nnunet_adapter
-from a9t.constants import MODEL_CONFIG, DEFAULT_FOLD
+from a9t.constants import DEFAULT_FOLD
 
 DATASET_JSON_FILENAME = "dataset.json"
 PLANS_JSON_FILENAME = "plans.json"
@@ -46,12 +47,14 @@ def generate_labels_on_data(
     samples_dir,
     dataset_id,
     output_dir,
+    model_config,
     nnunet_adapter: NNUNetV2Adapter = default_nnunet_adapter,
 ):
+    os.makedirs(output_dir, exist_ok=True)
     nnunet_adapter.predict_folder(
         samples_dir,
         output_dir,
-        MODEL_CONFIG,
+        model_config,
         dataset_id,
         DEFAULT_FOLD,
     )
