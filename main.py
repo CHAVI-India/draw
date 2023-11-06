@@ -3,6 +3,7 @@ CLI of AutoSegment (A9T) Pipeline
 """
 import os
 from datetime import datetime
+import shutil
 
 import click
 
@@ -16,6 +17,7 @@ from a9t.preprocess.preprocess_data import (
     nnunet_preprocess,
 )
 from a9t.predict.evaluate import generate_labels_on_data
+from a9t.postprocess import postprocess_folder
 
 
 @click.group(
@@ -126,6 +128,7 @@ def predict(preds_dir, dataset_name, root_dir, only_original):
         dataset_name = dataset_specific_map["name"]
         seg_map = dataset_specific_map["map"]
         trainer_name = dataset_specific_map["trainer_name"]
+        postprocess = dataset_specific_map["postprocess"]
 
         dataset_dir = f"data/nnUNet_raw/Dataset{dataset_id}_{dataset_name}"
         remove_stuff(dataset_dir)
@@ -144,11 +147,24 @@ def predict(preds_dir, dataset_name, root_dir, only_original):
                 only_original=only_original,
             )
         tr_images = os.path.join(dataset_dir, "imagesTr")
-        model_pred_dir = os.path.join(preds_dir, parent_dataset_name, str(dataset_id))
+        model_pred_dir = os.path.join(preds_dir, parent_dataset_name, str(dataset_id), "modelpred")
         remove_stuff(model_pred_dir)
-        final_output_dir = os.path.join(preds_dir, parent_dataset_name, "results")
+
         generate_labels_on_data(tr_images, dataset_id, model_pred_dir, model_config, trainer_name)
-        # apply_postprocessing()
+
+        if postprocess is not None:
+            ip_folder=model_pred_dir
+            op_folder=os.path.join(preds_dir, parent_dataset_name, str(dataset_id), "postprocess")
+            remove_stuff(op_folder)
+            os.makedirs(op_folder, exist_ok=True)
+            pkl_file_src=postprocess
+            pkl_file_dest=f"{op_folder}/postprocessing.pkl"
+            # copy
+            shutil.copy(pkl_file_src, pkl_file_dest)
+            postprocess_folder(ip_folder, op_folder, pkl_file_dest)
+            model_pred_dir=op_folder
+
+        final_output_dir = os.path.join(preds_dir, parent_dataset_name, "results")
         convert_nifti_outputs_to_dicom(
             model_pred_dir,
             final_output_dir,

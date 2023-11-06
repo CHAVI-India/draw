@@ -45,7 +45,7 @@ TS_PRIME_MAP = {
             6: "Penilebulb",
         },
         "trainer_name": "nnUNetTrainerNoMirroring",
-        "postprocess": True,
+        "postprocess": "data/nnUNet_results/Dataset720_TSPrime/nnUNetTrainerNoMirroring__nnUNetPlans__3d_fullres/postprocessing.pkl",
     },
     721: {
         "name": "TSPrimeCTVP",
@@ -54,7 +54,7 @@ TS_PRIME_MAP = {
             1: "Ctvp",
         },
         "trainer_name": "nnUNetTrainer",
-        "postprocess": False,
+        "postprocess": None,
     },
     722: {
         "name": "TSPrimeCTVN",
@@ -64,7 +64,7 @@ TS_PRIME_MAP = {
             1: "Ctvn",
         },
         "trainer_name": "nnUNetTrainer",
-        "postprocess": False,
+        "postprocess": None,
     },
 }
 

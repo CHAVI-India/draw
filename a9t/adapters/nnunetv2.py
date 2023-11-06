@@ -24,6 +24,23 @@ class NNUNetV2Adapter:
         os.environ[self.NNUNET_PREPROCESSED] = self.preprocessed_dir
         os.environ[self.NNUNET_RESULTS] = self.preds_dir
 
+    def postprocess(self,input_folder, output_folder, pkl_file):
+        # nnUNetv2_apply_postprocessing \
+    # -i data/nnUNet_results/Dataset720_TSPrime/imagesTr_predhighres_NoMirror \
+    # -o data/nnUNet_results/Dataset720_TSPrime/imagesTr_output \
+    # -pp_pkl data/nnUNet_results/Dataset720_TSPrime/imagesTr_predhighres_NoMirror/postprocessing.pkl \
+        self.set_env()
+        run_args = [
+            "nnUNetv2_apply_postprocessing",
+            "-i",
+            input_folder,
+            "-o",
+            output_folder,
+            "-pp_pkl",
+            pkl_file,
+        ]
+        self._run_subprocess(run_args)
+
     def preprocess(self, dataset_id: str):
         self.set_env()
         run_args = [
