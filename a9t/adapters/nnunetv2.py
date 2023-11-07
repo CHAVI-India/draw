@@ -12,6 +12,7 @@ class NNUNetV2Adapter:
     NNUNET_RAW = "nnUNet_raw"
     NNUNET_PREPROCESSED = "nnUNet_preprocessed"
     NNUNET_RESULTS = "nnUNet_results"
+    NNUNET_N_PROC_DA = "nnUNet_n_proc_DA"
 
     def __init__(self, raw_dir, preprocessed_dir, preds_dir):
         self.raw_dir = raw_dir
@@ -23,12 +24,9 @@ class NNUNetV2Adapter:
         os.environ[self.NNUNET_RAW] = self.raw_dir
         os.environ[self.NNUNET_PREPROCESSED] = self.preprocessed_dir
         os.environ[self.NNUNET_RESULTS] = self.preds_dir
+        os.environ[self.NNUNET_N_PROC_DA] = "4"
 
-    def postprocess(self,input_folder, output_folder, pkl_file):
-        # nnUNetv2_apply_postprocessing \
-    # -i data/nnUNet_results/Dataset720_TSPrime/imagesTr_predhighres_NoMirror \
-    # -o data/nnUNet_results/Dataset720_TSPrime/imagesTr_output \
-    # -pp_pkl data/nnUNet_results/Dataset720_TSPrime/imagesTr_predhighres_NoMirror/postprocessing.pkl \
+    def postprocess(self, input_folder, output_folder, pkl_file):
         self.set_env()
         run_args = [
             "nnUNetv2_apply_postprocessing",
@@ -121,5 +119,7 @@ class NNUNetV2Adapter:
 
 
 default_nnunet_adapter = NNUNetV2Adapter(
-    "data/nnUNet_raw", "data/nnUNet_preprocessed", "data/nnUNet_results"
+    "data/nnUNet_raw",
+    "data/nnUNet_preprocessed",
+    "data/nnUNet_results",
 )

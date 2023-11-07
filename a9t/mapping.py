@@ -49,7 +49,7 @@ TS_PRIME_MAP = {
     },
     721: {
         "name": "TSPrimeCTVP",
-        "config": "2d",
+        "config": "3d_lowres",
         "map": {
             1: "Ctvp",
         },
@@ -58,7 +58,6 @@ TS_PRIME_MAP = {
     },
     722: {
         "name": "TSPrimeCTVN",
-        # Update config as needed
         "config": "3d_fullres",
         "map": {
             1: "Ctvn",

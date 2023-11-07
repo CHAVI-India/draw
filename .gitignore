@@ -280,3 +280,6 @@ temp/**
 
 output/TSPrime/**
 tsprime_ctvn*
+preds
+.vscode
+.venv39
