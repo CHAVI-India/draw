@@ -1,0 +1,1 @@
+python ./main.py predict -r data/raw/TSPrime_test -p output -n TSPrime
