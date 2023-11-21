@@ -7,15 +7,10 @@ import shutil
 
 import click
 
-from a9t.adapters.nnunetv2 import default_nnunet_adapter
 from a9t.common.nifti2rt import convert_nifti_outputs_to_dicom
 from a9t.common.utils import remove_stuff, get_all_folders_from_raw_dir
-from a9t.constants import BASE_DIR
 from a9t.mapping import ALL_SEG_MAP
-from a9t.preprocess.preprocess_data import (
-    convert_dicom_dir_to_nnunet_dataset,
-    nnunet_preprocess,
-)
+from a9t.preprocess.preprocess_data import convert_dicom_dir_to_nnunet_dataset
 from a9t.predict.evaluate import generate_labels_on_data
 from a9t.postprocess import postprocess_folder
 
@@ -58,9 +53,19 @@ def cli():
     default=0,
     help="The sample number to start putting data from",
 )
-def preprocess(root_dir, dataset_id, dataset_name, start):
-    remove_stuff(dataset_id, dataset_name)
-    all_dicom_dirs = [f.path for f in os.scandir(root_dir) if f.is_dir()]
+@click.option(
+    "--only-original",
+    is_flag=True,
+    help="Convert only original DICOM",
+)
+def preprocess(root_dir, dataset_id, dataset_name, start, only_original):
+    task_map = ALL_SEG_MAP[dataset_name]
+    all_dicom_dirs = get_all_folders_from_raw_dir(root_dir)
+
+    print("Processing ID", dataset_id)
+    dataset_specific_map = task_map[int(dataset_id)]
+    dataset_name = dataset_specific_map["name"]
+    seg_map = dataset_specific_map["map"]
 
     for idx, dicom_dir in enumerate(all_dicom_dirs, start=start):
         sample_number = str(idx).zfill(3)
@@ -70,11 +75,11 @@ def preprocess(root_dir, dataset_id, dataset_name, start):
             dataset_id,
             dataset_name,
             sample_number,
+            seg_map,
             data_tag="seg",
             extension="nii.gz",
-            only_original=False,
+            only_original=only_original,
         )
-        nnunet_preprocess(dataset_id, default_nnunet_adapter)
 
 
 @cli.command(help="Generate Predictions from trained model")
@@ -147,22 +152,28 @@ def predict(preds_dir, dataset_name, root_dir, only_original):
                 only_original=only_original,
             )
         tr_images = os.path.join(dataset_dir, "imagesTr")
-        model_pred_dir = os.path.join(preds_dir, parent_dataset_name, str(dataset_id), "modelpred")
+        model_pred_dir = os.path.join(
+            preds_dir, parent_dataset_name, str(dataset_id), "modelpred"
+        )
         remove_stuff(model_pred_dir)
 
-        generate_labels_on_data(tr_images, dataset_id, model_pred_dir, model_config, trainer_name)
+        generate_labels_on_data(
+            tr_images, dataset_id, model_pred_dir, model_config, trainer_name
+        )
 
         if postprocess is not None:
-            ip_folder=model_pred_dir
-            op_folder=os.path.join(preds_dir, parent_dataset_name, str(dataset_id), "postprocess")
+            ip_folder = model_pred_dir
+            op_folder = os.path.join(
+                preds_dir, parent_dataset_name, str(dataset_id), "postprocess"
+            )
             remove_stuff(op_folder)
             os.makedirs(op_folder, exist_ok=True)
-            pkl_file_src=postprocess
-            pkl_file_dest=f"{op_folder}/postprocessing.pkl"
+            pkl_file_src = postprocess
+            pkl_file_dest = f"{op_folder}/postprocessing.pkl"
             # copy
             shutil.copy(pkl_file_src, pkl_file_dest)
             postprocess_folder(ip_folder, op_folder, pkl_file_dest)
-            model_pred_dir=op_folder
+            model_pred_dir = op_folder
 
         final_output_dir = os.path.join(preds_dir, parent_dataset_name, "results")
         convert_nifti_outputs_to_dicom(
