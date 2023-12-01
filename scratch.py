@@ -1,6 +1,8 @@
 from a9t.predict import folder_predict
+from a9t.adapters.nnunetv2 import default_nnunet_adapter
 
-# def predict(preds_dir, dataset_name, root_dir, only_original):
+# Env set mandatory
+default_nnunet_adapter.set_env()
 folder_predict(
     root_dir="data/raw/TSPrime_test",
     preds_dir="output",

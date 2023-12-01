@@ -5,7 +5,7 @@ from glob import glob
 
 from pydicom import dcmread
 
-from a9t.constants import BASE_DIR
+from a9t.constants import base_dir
 
 
 def clear_out_old_files(dir_path):

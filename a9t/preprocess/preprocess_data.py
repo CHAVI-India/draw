@@ -14,7 +14,7 @@ from a9t.common.utils import get_rt_file_path, read_json, write_json
 from a9t.constants import (
     TEMP_DIR_BASE,
     NNUNET_RAW_DATA_ENV_KEY,
-    BASE_DIR,
+    base_dir,
     DB_NAME,
 )
 
@@ -108,10 +108,12 @@ def get_data_save_paths(
     sample_number,
     extension,
 ):
-    if BASE_DIR is None:
+    
+    base_dir = os.environ.get(NNUNET_RAW_DATA_ENV_KEY, None)
+    if base_dir is None:
         raise ValueError(f"Value of {NNUNET_RAW_DATA_ENV_KEY} is not set. Aborting...")
 
-    dataset_dir = f"{BASE_DIR}/Dataset{dataset_id}_{dataset_name}"
+    dataset_dir = f"{base_dir}/Dataset{dataset_id}_{dataset_name}"
     train_dir, labels_dir = f"{dataset_dir}/imagesTr", f"{dataset_dir}/labelsTr"
 
     os.makedirs(train_dir, exist_ok=True)
