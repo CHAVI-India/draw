@@ -121,6 +121,9 @@ def preprocess(root_dir, dataset_id, dataset_name, start, only_original):
     is_flag=True,
 )
 def predict(preds_dir, dataset_name, root_dir, only_original):
+    folder_predict(preds_dir, dataset_name, root_dir, only_original)
+
+def folder_predict(preds_dir, dataset_name, root_dir, only_original):
     task_map = ALL_SEG_MAP[dataset_name]
     all_dicom_dirs = get_all_folders_from_raw_dir(root_dir)
     exp_number = datetime.now().strftime("%Y-%m-%d.%H-%M")
