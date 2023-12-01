@@ -36,6 +36,15 @@ TS_GYNE_MAP = {
         "trainer_name": "nnUNetTrainer",
         "postprocess": None,
     },
+    822: {
+        "name": "TSGyneCtvnPresacral",
+        "config": "3d_lowres",
+        "map": {
+            1: "Ctvn_Presacral",
+        },
+        "trainer_name": "nnUNetTrainer",
+        "postprocess": None,
+    },
 }
 
 TS_PRIME_MAP = {
