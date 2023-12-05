@@ -53,12 +53,7 @@ def generate_labels_on_data(
 ):
     os.makedirs(output_dir, exist_ok=True)
     nnunet_adapter.predict_folder(
-        samples_dir,
-        output_dir,
-        model_config,
-        dataset_id,
-        DEFAULT_FOLD,
-        trainer_name
+        samples_dir, output_dir, model_config, dataset_id, DEFAULT_FOLD, trainer_name
     )
 
 

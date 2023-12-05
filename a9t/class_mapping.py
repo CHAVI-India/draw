@@ -1,7 +1,6 @@
 # NOTE: The labels are as per harmonization scheme
 # WARNING: Label Ordering VVV important, overwriting possible. Put largest labels first
 ALL_SEG_MAP = {
-
     "TSPrime": {
         # Harmonized
         1: "Bladder",
@@ -11,12 +10,8 @@ ALL_SEG_MAP = {
         5: "Femur_Head_R",
         6: "Penilebulb",
     },
-    "TSPrimeCTVP": {
-        1: "Ctvp"
-    },
-    "TSPrimeCTVN": {
-        1: "Ctvn"
-    },
+    "TSPrimeCTVP": {1: "Ctvp"},
+    "TSPrimeCTVN": {1: "Ctvn"},
     "TSGyne": {
         1: "Body",
         2: "Bladder",
