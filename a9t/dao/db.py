@@ -4,7 +4,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import text
 
-from .table import DicomLog
+from .table import DicomLog, Status
 from ..config import DB_CONFIG, MODEL_CONFIG
 
 
@@ -41,15 +41,32 @@ class DBConnection:
         print(query)
         with self.engine.connect() as conn:
             result_set = conn.execute(text(query))
-
-            for result in result_set:
-                print(result)
+            return [
+                self.convert_to_obj(row) for row in result_set
+            ]
 
     def insert(self, dcm_log: List[DicomLog]):
         self.session.add_all(dcm_log)
         self.session.commit()
 
-    def update(
+    def update_status(
         self,
+        dcm_log: DicomLog,
+        updated_status: Status,
     ):
-        pass
+        q = "UPDATE dicomlog SET status='{}' WHERE dicomlog.id='{}'".format(updated_status.value, dcm_log.id)
+        with self.engine.connect() as conn:
+            conn.execute(text(q))
+            conn.commit()
+
+    @staticmethod
+    def convert_to_obj(row):
+        obj = DicomLog(
+            id=row.id,
+            input_path=row.input_path,
+            output_path=row.output_path,
+            status=row.status,
+            model=row.model,
+            created_on=row.created_on,
+        )
+        return obj

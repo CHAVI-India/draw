@@ -2,10 +2,9 @@ import json
 import os.path
 import shutil
 from glob import glob
+from pathlib import Path
 
 from pydicom import dcmread
-
-from a9t.constants import BASE_DIR
 
 
 def clear_out_old_files(dir_path):
@@ -52,3 +51,9 @@ def get_files_not_rt(dicom_dir) -> list[str]:
 def remove_stuff(path):
     if os.path.exists(path):
         shutil.rmtree(path)
+
+
+def get_immediate_dicom_parent_dir(dicom_dir):
+    one_dcm_path = glob(f"{dicom_dir}/**/**.dcm", recursive=True)[0]
+    one_dcm_path = Path(one_dcm_path)
+    return str(one_dcm_path.parent)

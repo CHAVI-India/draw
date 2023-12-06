@@ -29,3 +29,12 @@ class DicomLog(Base):
     status = Column("status", Enum(Status), default=Status.INIT)
     model = Column("model", Enum(Model))
     created_on = Column("created_on", DateTime, default=datetime.datetime.utcnow)
+
+    def __repr__(self):
+        return (f"DicomLog("
+                f"id={self.id}, "
+                f"input_path={self.input_path}, "
+                f"output_path={self.output_path}, "
+                f"status={self.status}, "
+                f"model={self.model}, "
+                f"created_on={self.created_on})")

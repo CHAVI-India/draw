@@ -3,14 +3,13 @@ import os
 import os.path
 import tempfile
 from glob import glob
-from pathlib import Path
 
 import nibabel as nib
 import numpy as np
 
 from a9t.adapters.nnunetv2 import NNUNetV2Adapter
 from a9t.common.dcm2nii import convert_DICOM_to_Multi_NIFTI
-from a9t.common.utils import get_rt_file_path, read_json, write_json
+from a9t.common.utils import get_rt_file_path, read_json, write_json, get_immediate_dicom_parent_dir
 from a9t.constants import (
     TEMP_DIR_BASE,
     NNUNET_RAW_DATA_ENV_KEY,
@@ -122,12 +121,6 @@ def get_data_save_paths(
         f"{labels_dir}/{data_tag}_{sample_number}.{extension}",
     )
     return img_save_path, seg_save_path, dataset_dir
-
-
-def get_immediate_dicom_parent_dir(dicom_dir):
-    one_dcm_path = glob(f"{dicom_dir}/**/**.dcm", recursive=True)[0]
-    one_dcm_path = Path(one_dcm_path)
-    return str(one_dcm_path.parent)
 
 
 def convert_dicom_to_nifti(
