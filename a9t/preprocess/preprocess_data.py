@@ -9,7 +9,12 @@ import numpy as np
 
 from a9t.adapters.nnunetv2 import NNUNetV2Adapter
 from a9t.common.dcm2nii import convert_DICOM_to_Multi_NIFTI
-from a9t.common.utils import get_rt_file_path, read_json, write_json, get_immediate_dicom_parent_dir
+from a9t.common.utils import (
+    get_rt_file_path,
+    read_json,
+    write_json,
+    get_immediate_dicom_parent_dir,
+)
 from a9t.constants import (
     TEMP_DIR_BASE,
     NNUNET_RAW_DATA_ENV_KEY,

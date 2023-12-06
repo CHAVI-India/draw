@@ -45,6 +45,15 @@ TS_GYNE_MAP = {
         "trainer_name": "nnUNetTrainer",
         "postprocess": None,
     },
+    823: {
+        "name": "TSGyneBowel",
+        "config": "3d_lowres",
+        "map": {
+            1: "Bowel",
+        },
+        "trainer_name": "nnUNetTrainer",
+        "postprocess": None,
+    },
 }
 
 TS_PRIME_MAP = {

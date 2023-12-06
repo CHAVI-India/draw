@@ -10,7 +10,7 @@ export nnUNet_preprocessed=$BASE_DIR/nnUNet_preprocessed
 export nnUNet_results=$BASE_DIR/nnUNet_results
 
 # Preprocess the dataset
-DATASET_ID=822
+DATASET_ID=823
 DATASET_NAME=TSGyne
 nnUNet_n_proc_DA=15
 nnUNet_def_n_proc=15

@@ -21,9 +21,7 @@ class DBConnection:
         self.create_table_if_not_exists()
 
     def create_table_if_not_exists(self):
-        if not self.engine.dialect.has_table(
-            self.engine.connect(), self._table_name
-        ):
+        if not self.engine.dialect.has_table(self.engine.connect(), self._table_name):
             DicomLog.metadata.create_all(self.engine)
             print("Created Table")
 
@@ -41,9 +39,7 @@ class DBConnection:
         print(query)
         with self.engine.connect() as conn:
             result_set = conn.execute(text(query))
-            return [
-                self.convert_to_obj(row) for row in result_set
-            ]
+            return [self.convert_to_obj(row) for row in result_set]
 
     def insert(self, dcm_log: List[DicomLog]):
         self.session.add_all(dcm_log)
@@ -54,7 +50,9 @@ class DBConnection:
         dcm_log: DicomLog,
         updated_status: Status,
     ):
-        q = "UPDATE dicomlog SET status='{}' WHERE dicomlog.id='{}'".format(updated_status.value, dcm_log.id)
+        q = "UPDATE dicomlog SET status='{}' WHERE dicomlog.id='{}'".format(
+            updated_status.value, dcm_log.id
+        )
         with self.engine.connect() as conn:
             conn.execute(text(q))
             conn.commit()
