@@ -25,17 +25,17 @@ class DBConnection:
             DicomLog.metadata.create_all(self.engine)
             print("Created Table")
 
-    def top(self, dataset_name):
+    def top(self, dataset_name, status: Status):
         if dataset_name not in MODEL_CONFIG["KEYS"]:
             raise KeyError(f"{dataset_name} not in {MODEL_CONFIG['KEYS']}")
         query = (
             "SELECT * "
             "FROM {} "
             "WHERE model='{}' "
-            "AND status='INIT' "
+            "AND status='{}' "
             "ORDER BY created_on DESC "
             "LIMIT {}"
-        ).format(self._table_name, dataset_name, self._batch_size)
+        ).format(self._table_name, dataset_name, status.value, self._batch_size)
         print(query)
         with self.engine.connect() as conn:
             result_set = conn.execute(text(query))
@@ -68,3 +68,13 @@ class DBConnection:
             created_on=row.created_on,
         )
         return obj
+
+    def update(self, series_name, output_path):
+        q = "UPDATE dicomlog SET status='{}', output_path='{}' WHERE dicomlog.series_name='{}'".format(
+            Status.PREDICTED.value,
+            series_name,
+            output_path,
+        )
+        with self.engine.connect() as conn:
+            conn.execute(text(q))
+            conn.commit()

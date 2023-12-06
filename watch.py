@@ -51,9 +51,11 @@ def on_created(event: FileSystemEvent):
         print("Updated Dir Path", dir_path)
 
         conn = DBConnection()
+        series_name = os.path.basename(get_immediate_dicom_parent_dir(event.src_path))
         dcm = DicomLog(
             input_path=dir_path,
             model=model_name,
+            series_name=series_name,
         )
         conn.insert([dcm])
         print(f"Added {dir_path} in DB")

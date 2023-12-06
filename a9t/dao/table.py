@@ -13,7 +13,8 @@ Model = enum.Enum("Model", tuple(ALL_SEG_MAP.keys()))
 class Status(enum.Enum):
     INIT = "INIT"
     STARTED = "STARTED"
-    COMPLETED = "COMPLETED"
+    PREDICTED = "PREDICTED"
+    SENT = "SENT"
     PROCESSING = "PROCESSING"
 
 
@@ -24,6 +25,7 @@ class Base(DeclarativeBase):
 class DicomLog(Base):
     __tablename__ = "dicomlog"
     id = Column(Uuid, primary_key=True, default=uuid.uuid4)
+    series_name = Column("series_name", String(256))
     input_path = Column("input_path", String(2000))
     output_path = Column("output_path", String(2000))
     status = Column("status", Enum(Status), default=Status.INIT)

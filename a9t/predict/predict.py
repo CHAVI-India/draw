@@ -1,18 +1,19 @@
 import os
 import shutil
 from datetime import datetime
+from typing import List
 
 from a9t.common.nifti2rt import convert_nifti_outputs_to_dicom
 from a9t.common.utils import get_all_folders_from_raw_dir, remove_stuff
+from a9t.dao.table import DicomLog
 from a9t.mapping import ALL_SEG_MAP
 from a9t.postprocess import postprocess_folder
 from a9t.predict.evaluate import generate_labels_on_data
 from a9t.preprocess.preprocess_data import convert_dicom_dir_to_nnunet_dataset
 
 
-def folder_predict(preds_dir, dataset_name, root_dir, only_original):
+def folder_predict(dcm_logs: List[DicomLog], preds_dir, dataset_name, only_original):
     task_map = ALL_SEG_MAP[dataset_name]
-    all_dicom_dirs = get_all_folders_from_raw_dir(root_dir)
     exp_number = datetime.now().strftime("%Y-%m-%d.%H-%M")
     parent_dataset_name = dataset_name
 
@@ -28,7 +29,9 @@ def folder_predict(preds_dir, dataset_name, root_dir, only_original):
         dataset_dir = f"data/nnUNet_raw/Dataset{dataset_id}_{dataset_name}"
         remove_stuff(dataset_dir)
 
-        for idx, dicom_dir in enumerate(all_dicom_dirs):
+        dcm_input_paths = [dcm.input_path for dcm in dcm_logs]
+
+        for idx, dicom_dir in enumerate(dcm_input_paths):
             sample_number = str(idx).zfill(3)
 
             dataset_dir = convert_dicom_dir_to_nnunet_dataset(
@@ -74,3 +77,8 @@ def folder_predict(preds_dir, dataset_name, root_dir, only_original):
             exp_number,
             seg_map,
         )
+
+
+def get_all_dicom_dirs(root_dir):
+    all_dicom_dirs = get_all_folders_from_raw_dir(root_dir)
+    return all_dicom_dirs

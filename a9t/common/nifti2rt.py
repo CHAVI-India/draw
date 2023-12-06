@@ -1,6 +1,7 @@
 import glob
 import os
 import warnings
+from typing import List
 
 import nibabel as nib
 import numpy as np
@@ -9,9 +10,12 @@ from rt_utils import RTStructBuilder
 
 from a9t.class_mapping import ALL_SEG_MAP
 from a9t.constants import DB_NAME
+from a9t.dao.db import DBConnection
+from a9t.dao.table import DicomLog
 
 CSV_FILE_PATH = "data/db/db.csv"
 NNUNET_RESULTS_KEY = "nnUNet_results"
+RT_DEFAULT_FILE_NAME = "Pred_RT.dcm"
 
 
 def convert_multilabel_nifti_to_rtstruct(
@@ -20,14 +24,13 @@ def convert_multilabel_nifti_to_rtstruct(
     save_dir: str,
     label_to_name_map: dict[int, str],
     debug: bool = True,
-) -> None:
+) -> str:
     """Convert multiple NIFTI files to RT"""
 
     os.makedirs(save_dir, exist_ok=True)
 
-    rt_path = f"{save_dir}/Pred_RT.dcm"
+    rt_path = f"{save_dir}/{RT_DEFAULT_FILE_NAME}"
 
-    rtstruct = None
     if os.path.exists(rt_path):
         rtstruct = RTStructBuilder.create_from(dicom_dir, rt_path)
     else:
@@ -46,6 +49,7 @@ def convert_multilabel_nifti_to_rtstruct(
     rtstruct.save(rt_path)
     if debug:
         print("RT saved at:", save_dir)
+    return save_dir
 
 
 def get_dcm_root_from_csv(dataset_id: int, sample_no: str, dataset_dir):
@@ -131,7 +135,7 @@ def get_sample_number_from_nifti_path(nifti_path, delim="seg_"):
 
 def convert_nifti_outputs_to_dicom(
     model_pred_dir,
-    preds_dir,
+    final_output_dir,
     dataset_dir,
     dataset_id,
     exp_number,
@@ -145,9 +149,12 @@ def convert_nifti_outputs_to_dicom(
         dcm_root_dir, dcm_parent_folder = get_dcm_root_from_csv(
             dataset_id, sample_no, dataset_dir
         )
-        convert_multilabel_nifti_to_rtstruct(
+        save_dir = convert_multilabel_nifti_to_rtstruct(
             nifti_file_path=nifti_file_path,
             dicom_dir=dcm_root_dir,
-            save_dir=f"{preds_dir}/{exp_number}/{dcm_parent_folder}",
+            save_dir=f"{final_output_dir}/{exp_number}/{dcm_parent_folder}",
             label_to_name_map=seg_map,
         )
+        conn = DBConnection()
+        conn.update(dcm_parent_folder, save_dir)
+    return f"{final_output_dir}/{exp_number}"
