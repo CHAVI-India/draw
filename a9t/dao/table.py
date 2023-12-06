@@ -5,9 +5,9 @@ import uuid
 from sqlalchemy import String, Column, Enum, Uuid, DateTime
 from sqlalchemy.orm import DeclarativeBase
 
-from ..mapping import ALL_SEG_MAP
+from ..config import MODEL_CONFIG
 
-Model = enum.Enum("Model", tuple(ALL_SEG_MAP.keys()))
+Model = enum.Enum("Model", tuple(MODEL_CONFIG["KEYS"]))
 
 
 class Status(enum.Enum):

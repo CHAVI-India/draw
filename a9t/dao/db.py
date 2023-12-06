@@ -14,7 +14,7 @@ class DBConnection:
     """
 
     def __init__(self):
-        self.engine = create_engine(DB_CONFIG["URL"], echo=True)
+        self.engine = create_engine(DB_CONFIG["URL"], echo=True, isolation_level="READ UNCOMMITTED")
         self.session = sessionmaker(bind=self.engine)()
         self._table_name = DicomLog.__tablename__
         self._batch_size = 4
