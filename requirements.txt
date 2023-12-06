@@ -13,3 +13,4 @@ torch==2.0.1+cu118
 mysql-connector-python
 sqlalchemy
 watchdog
+nvidia-ml-py3
