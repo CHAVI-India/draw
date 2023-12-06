@@ -7,7 +7,7 @@ nnunetv2==2.1
 numpy==1.25.2
 pydicom==2.4.2
 rt-utils==1.2.7
-click==
+click
 torch==2.0.1+cu118
 --extra-index-url https://download.pytorch.org/whl/cu118
 pymysql

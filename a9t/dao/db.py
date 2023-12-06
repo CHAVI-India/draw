@@ -5,7 +5,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import text
 
 from .table import DicomLog, Status
-from ..config import DB_CONFIG, MODEL_CONFIG
+from ..config import DB_CONFIG, MODEL_CONFIG, PRED_BATCH_SIZE
 
 
 class DBConnection:
@@ -17,7 +17,7 @@ class DBConnection:
         self.engine = create_engine(DB_CONFIG["URL"], echo=True, isolation_level="READ UNCOMMITTED")
         self.session = sessionmaker(bind=self.engine)()
         self._table_name = DicomLog.__tablename__
-        self._batch_size = 4
+        self.BATCH_SIZE = PRED_BATCH_SIZE
         self.create_table_if_not_exists()
 
     def create_table_if_not_exists(self):
@@ -35,7 +35,7 @@ class DBConnection:
             "AND status='{}' "
             "ORDER BY created_on DESC "
             "LIMIT {}"
-        ).format(self._table_name, dataset_name, status.value, self._batch_size)
+        ).format(self._table_name, dataset_name, status.value, self.BATCH_SIZE)
         print(query)
         with self.engine.connect() as conn:
             result_set = conn.execute(text(query))

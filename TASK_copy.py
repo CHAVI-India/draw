@@ -41,11 +41,12 @@ def determine_model(dir_path):
     return model_name, os.path.join(RAW_DIR, model_name)
 
 
-def on_created(event: FileSystemEvent):
+def on_modified(event: FileSystemEvent):
     print("New Event Detected")
+
     if event.is_directory:
         dir_path = event.src_path
-        wait_copy_finish()
+        wait_copy_finish(dir_path)
         model_name, raw_dir = determine_model(dir_path)
         dir_path = copy_filtered_files(dir_path, raw_dir, filter_files)
         print("Updated Dir Path", dir_path)
@@ -61,8 +62,12 @@ def on_created(event: FileSystemEvent):
         print(f"Added {dir_path} in DB")
 
 
-def wait_copy_finish():
-    time.sleep(WAIT_FOR_COPY_PAUSE_SECONDS)
+def wait_copy_finish(filename):
+    historicalSize = -1
+    while historicalSize != os.path.getsize(filename):
+        historicalSize = os.path.getsize(filename)
+        time.sleep(1)
+    print("file copy has now finished")
 
 
 def on_deleted(event):
@@ -77,10 +82,11 @@ if __name__ == "__main__":
     my_event_handler = PatternMatchingEventHandler(
         patterns, ignore_patterns, ignore_directories, case_sensitive
     )
-    my_event_handler.on_created = on_created
+    my_event_handler.on_modified = on_modified
     my_event_handler.on_deleted = on_deleted
 
     path = os.path.normpath(SERVER_OUTPUT_DIR)
+    print("WATCHING", path)
     go_recursively = False
     my_observer = Observer()
     my_observer.schedule(my_event_handler, path, recursive=go_recursively)

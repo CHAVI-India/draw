@@ -112,6 +112,8 @@ def get_data_save_paths(
     sample_number,
     extension,
 ):
+    
+    BASE_DIR = os.environ.get(NNUNET_RAW_DATA_ENV_KEY, None)
     if BASE_DIR is None:
         raise ValueError(f"Value of {NNUNET_RAW_DATA_ENV_KEY} is not set. Aborting...")
 

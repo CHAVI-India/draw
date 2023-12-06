@@ -156,5 +156,5 @@ def convert_nifti_outputs_to_dicom(
             label_to_name_map=seg_map,
         )
         conn = DBConnection()
-        conn.update(dcm_parent_folder, save_dir)
+        conn.update(save_dir, dcm_parent_folder)
     return f"{final_output_dir}/{exp_number}"
