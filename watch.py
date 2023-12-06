@@ -6,10 +6,11 @@ import time
 from watchdog.events import PatternMatchingEventHandler, FileSystemEvent
 from watchdog.observers import Observer
 
+from a9t.common.utils import get_immediate_dicom_parent_dir
 from a9t.dao.db import DBConnection
 from a9t.dao.table import DicomLog
-from a9t.common.utils import get_immediate_dicom_parent_dir
 
+SERVER_OUTPUT_DIR = os.path.join("data", "watch")
 DICOM_FILE_FILTER_REGEX = "**/*.dcm"
 WAIT_FOR_COPY_PAUSE_SECONDS = 1
 RAW_DIR = os.path.join("data", "raw")
@@ -20,7 +21,9 @@ def copy_filtered_files(src_dir, dst_base_dir, filter_fxn):
     dcm_parent_dir = get_immediate_dicom_parent_dir(src_dir)
     for p in glob.glob(DICOM_FILE_FILTER_REGEX, recursive=True, root_dir=src_dir):
         if filter_fxn(os.path.join(src_dir, p)):
-            updated_dir_path = os.path.join(dst_base_dir, os.path.basename(dcm_parent_dir))
+            updated_dir_path = os.path.join(
+                dst_base_dir, os.path.basename(dcm_parent_dir)
+            )
             os.makedirs(updated_dir_path, exist_ok=True)
             shutil.copy(os.path.join(src_dir, p), os.path.join(dst_base_dir, p))
     return updated_dir_path
@@ -75,7 +78,7 @@ if __name__ == "__main__":
     my_event_handler.on_created = on_created
     my_event_handler.on_deleted = on_deleted
 
-    path = os.path.normpath("data/watch")
+    path = os.path.normpath(SERVER_OUTPUT_DIR)
     go_recursively = False
     my_observer = Observer()
     my_observer.schedule(my_event_handler, path, recursive=go_recursively)
