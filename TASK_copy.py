@@ -5,12 +5,14 @@ import time
 
 from watchdog.events import PatternMatchingEventHandler, FileSystemEvent
 from watchdog.observers import Observer
+from pydicom import dcmread
 
 from a9t.common.utils import get_immediate_dicom_parent_dir
 from a9t.dao.db import DBConnection
 from a9t.dao.table import DicomLog
+from a9t.config import DICOM_WATCH_DIR, PROTOCOL_TO_MODEL
 
-SERVER_OUTPUT_DIR = os.path.join("data", "watch")
+SERVER_OUTPUT_DIR = DICOM_WATCH_DIR
 DICOM_FILE_FILTER_REGEX = "**/*.dcm"
 WAIT_FOR_COPY_PAUSE_SECONDS = 1
 RAW_DIR = os.path.join("data", "raw")
@@ -36,8 +38,16 @@ def filter_files(path):
 
 
 def determine_model(dir_path):
-    # TODO: Change this value
-    model_name = "TSPrime"
+    one_file_name = glob.glob(os.path.join(dir_path, DICOM_FILE_FILTER_REGEX))[0]
+    ds = dcmread(one_file_name)
+    model_name = None
+
+    dcm_protocol_name = ds.ProtocolName.lower()
+    for protocol, model in PROTOCOL_TO_MODEL.items():
+        if protocol in dcm_protocol_name:
+            model_name = model
+            break
+        
     return model_name, os.path.join(RAW_DIR, model_name)
 
 
@@ -66,7 +76,7 @@ def wait_copy_finish(filename):
     historicalSize = -1
     while historicalSize != os.path.getsize(filename):
         historicalSize = os.path.getsize(filename)
-        time.sleep(1)
+        time.sleep(5)
     print("file copy has now finished")
 
 

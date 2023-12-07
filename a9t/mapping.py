@@ -57,29 +57,29 @@ TS_GYNE_MAP = {
 }
 
 TS_PRIME_MAP = {
-    # 720: {
-    #     "name": "TSPrime",
-    #     "config": "3d_fullres",
-    #     "map": {
-    #         1: "Bladder",
-    #         2: "Anorectum",
-    #         3: "Bag_Bowel",
-    #         4: "Femur_Head_L",
-    #         5: "Femur_Head_R",
-    #         6: "Penilebulb",
-    #     },
-    #     "trainer_name": "nnUNetTrainerNoMirroring",
-    #     "postprocess": "data/nnUNet_results/Dataset720_TSPrime/nnUNetTrainerNoMirroring__nnUNetPlans__3d_fullres/postprocessing.pkl",
-    # },
-    # 721: {
-    #     "name": "TSPrimeCTVP",
-    #     "config": "3d_lowres",
-    #     "map": {
-    #         1: "Ctvp",
-    #     },
-    #     "trainer_name": "nnUNetTrainer",
-    #     "postprocess": None,
-    # },
+    720: {
+        "name": "TSPrime",
+        "config": "3d_fullres",
+        "map": {
+            1: "Bladder",
+            2: "Anorectum",
+            3: "Bag_Bowel",
+            4: "Femur_Head_L",
+            5: "Femur_Head_R",
+            6: "Penilebulb",
+        },
+        "trainer_name": "nnUNetTrainerNoMirroring",
+        "postprocess": "data/nnUNet_results/Dataset720_TSPrime/nnUNetTrainerNoMirroring__nnUNetPlans__3d_fullres/postprocessing.pkl",
+    },
+    721: {
+        "name": "TSPrimeCTVP",
+        "config": "3d_lowres",
+        "map": {
+            1: "Ctvp",
+        },
+        "trainer_name": "nnUNetTrainer",
+        "postprocess": None,
+    },
     722: {
         "name": "TSPrimeCTVN",
         "config": "3d_fullres",

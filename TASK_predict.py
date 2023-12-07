@@ -21,19 +21,6 @@ def get_gpu_memory():
     return int(memory_free_values[0])
 
 
-# def get_free_gpu():
-#     memory_used_command = ["nvidia-smi", "--query-gpu=memory.used", "--format=csv"]
-#     isolate_memory_value = lambda x: "".join(
-#         y for y in x.decode("ascii") if y in "0123456789"
-#     )
-#     mem_used = isolate_memory_value(
-#         sp.check_output(memory_used_command, stderr=sp.STDOUT)
-#     )
-#     print("MEM", mem_used)
-
-#     return int(mem_used)
-
-
 def copy_input_dcm_to_output(input_dir, output_dir):
     shutil.copytree(src=input_dir, dst=output_dir, dirs_exist_ok=True)
     remove_stuff(input_dir)

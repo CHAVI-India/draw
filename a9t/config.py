@@ -1,4 +1,5 @@
 from .mapping import ALL_SEG_MAP
+import os
 
 DB_CONFIG = {
     # "URL": "mysql+pymysql://root:root@localhost:4000/a9t",
@@ -8,4 +9,9 @@ DB_CONFIG = {
 }
 
 MODEL_CONFIG = {"KEYS": list(ALL_SEG_MAP.keys())}
-PRED_BATCH_SIZE=1
+PRED_BATCH_SIZE = 4
+DICOM_WATCH_DIR = os.path.normpath("D:\DICOM Database\DICOM IMPORT\dicom")
+PROTOCOL_TO_MODEL = {
+    "prostate": "TSPrime",
+    "gyne": "TSGyne",
+}
