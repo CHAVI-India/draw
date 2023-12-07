@@ -47,6 +47,9 @@ def determine_model(dir_path):
         if protocol in dcm_protocol_name:
             model_name = model
             break
+
+    if model_name is None:
+        return None, None
         
     return model_name, os.path.join(RAW_DIR, model_name)
 
