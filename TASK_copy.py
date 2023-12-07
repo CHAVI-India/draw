@@ -58,18 +58,19 @@ def on_modified(event: FileSystemEvent):
         dir_path = event.src_path
         wait_copy_finish(dir_path)
         model_name, raw_dir = determine_model(dir_path)
-        dir_path = copy_filtered_files(dir_path, raw_dir, filter_files)
-        print("Updated Dir Path", dir_path)
+        if model_name is not None:
+            dir_path = copy_filtered_files(dir_path, raw_dir, filter_files)
+            print("Updated Dir Path", dir_path)
 
-        conn = DBConnection()
-        series_name = os.path.basename(get_immediate_dicom_parent_dir(event.src_path))
-        dcm = DicomLog(
-            input_path=dir_path,
-            model=model_name,
-            series_name=series_name,
-        )
-        conn.insert([dcm])
-        print(f"Added {dir_path} in DB")
+            conn = DBConnection()
+            series_name = os.path.basename(get_immediate_dicom_parent_dir(event.src_path))
+            dcm = DicomLog(
+                input_path=dir_path,
+                model=model_name,
+                series_name=series_name,
+            )
+            conn.insert([dcm])
+            print(f"Added {dir_path} in DB")
 
 
 def wait_copy_finish(filename):
