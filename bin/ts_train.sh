@@ -109,3 +109,4 @@ echo "Training Started..."
 CUDA_VISIBLE_DEVICES=$cuda_device_id nnUNetv2_train "$DATASET_ID" $MODEL_CONFIG 0
 
 echo "Process Completed..."
+#nvidia-smi --id=0 --query-gpu=memory.free --format=csv,noheader,nounits 

@@ -276,7 +276,6 @@ pyrightconfig.json
 data/**
 
 ignore.py
-temp/**
 
 output/TSPrime/**
 tsprime_ctvn*

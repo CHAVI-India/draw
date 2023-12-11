@@ -54,6 +54,33 @@ TS_GYNE_MAP = {
         "trainer_name": "nnUNetTrainer",
         "postprocess": None,
     },
+    824: {
+        "name": "TSGyneCtvnObturator",
+        "config": "3d_lowres",
+        "map": {
+            1: "Ctvn_Obturator",
+        },
+        "trainer_name": "nnUNetTrainer",
+        "postprocess": None,
+    },
+    825: {
+        "name": "TSGyneCtvnIntIliac",
+        "config": "3d_lowres",
+        "map": {
+            1: "Ctvn_Int_Iliac",
+        },
+        "trainer_name": "nnUNetTrainer",
+        "postprocess": None,
+    },
+    826: {
+        "name": "TSGyneCtvnComIliac",
+        "config": "3d_lowres",
+        "map": {
+            1: "Ctvn_Com_Iliac",
+        },
+        "trainer_name": "nnUNetTrainer",
+        "postprocess": None,
+    },
 }
 
 TS_PRIME_MAP = {
