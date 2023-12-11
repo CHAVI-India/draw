@@ -57,8 +57,9 @@ def cli():
 def preprocess(root_dir, dataset_id, dataset_name, start, only_original):
     task_map = ALL_SEG_MAP[dataset_name]
     all_dicom_dirs = get_all_folders_from_raw_dir(root_dir)
-
     print("Processing ID", dataset_id)
+    print(f"Found {len(all_dicom_dirs)} directories to work on...")
+
     dataset_specific_map = task_map[int(dataset_id)]
     dataset_name = dataset_specific_map["name"]
     seg_map = dataset_specific_map["map"]
@@ -122,8 +123,8 @@ def predict(preds_dir, dataset_name, root_dir, only_original):
     folder_predict(dcm_logs, preds_dir, dataset_name, only_original)
 
 
-@cli.command()
-def train():
+@cli.command(help="(V1) Train individual datasets")
+def train_v1():
     raise NotImplemented("Processing...")
 
 
