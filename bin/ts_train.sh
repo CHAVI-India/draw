@@ -1,6 +1,7 @@
 #!/bin/bash
 PREPROCESS=false
 VERIFY=false
+MODEL_CONFIG="3d_lowres"
 
 # Function to display help information
 function display_help {
@@ -12,11 +13,12 @@ function display_help {
     echo "  -p    Preprocess data (optional). Default False. Boolean Flag"
     echo "  -v    Verify data (optional). Default False. Boolean Flag"
     echo "  -r    Root data path. Eg 'data/raw/TSGyne'. Put Path in double Quotes"
+    echo "  -c    Model Config like '3d_lowres', '3d_fullres'. Put in double Quotes"
     echo "  -h    Display this help message"
 }
 
 # Parse command line options
-while getopts ":n:i:d:r:pvh" opt; do
+while getopts ":n:i:d:r:c:pvh" opt; do
     case $opt in
         n)
             model_name=$OPTARG
@@ -39,6 +41,9 @@ while getopts ":n:i:d:r:pvh" opt; do
             ;;
         r)
             ROOT_DIR="$OPTARG"
+            ;;
+        c)
+            MODEL_CONFIG="$OPTARG"
             ;;
         \?)
             echo "Invalid option: -$OPTARG" >&2
@@ -67,22 +72,18 @@ echo "Cuda Device ID: $cuda_device_id"
 echo "Preprocess: $PREPROCESS"
 echo "Verify: $VERIFY"
 echo "ROOT DIR: $ROOT_DIR"
+echo "MODEL_CONFIG: $MODEL_CONFIG"
 
 # Environment Set
 export BASE_DIR=data
 export nnUNet_raw=$BASE_DIR/nnUNet_raw
 export nnUNet_preprocessed=$BASE_DIR/nnUNet_preprocessed
 export nnUNet_results=$BASE_DIR/nnUNet_results
-export nnUNet_n_proc_DA=15
-export nnUNet_def_proc=15
 export nnUNet_compile=1
 
 # CLI Args
 DATASET_ID=$dataset_id
 DATASET_NAME=$model_name
-
-# Fixed Args
-MODEL_CONFIG="3d_lowres"
 
 echo -e "\nSTARTING..."
 
@@ -106,7 +107,7 @@ fi
 
 # Train
 echo "Training Started..."
-CUDA_VISIBLE_DEVICES=$cuda_device_id nnUNetv2_train "$DATASET_ID" $MODEL_CONFIG 0
+CUDA_VISIBLE_DEVICES=$cuda_device_id nnUNetv2_train "$DATASET_ID" "$MODEL_CONFIG" 0
 
 echo "Process Completed..."
 #nvidia-smi --id=0 --query-gpu=memory.free --format=csv,noheader,nounits 

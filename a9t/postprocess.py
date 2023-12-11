@@ -1,5 +1,6 @@
-from a9t.adapters.nnunetv2 import NNUNetV2Adapter, default_nnunet_adapter
 import os
+
+from a9t.adapters.nnunetv2 import NNUNetV2Adapter, default_nnunet_adapter
 
 
 def postprocess_folder(

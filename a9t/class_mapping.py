@@ -1,5 +1,8 @@
 # NOTE: The labels are as per harmonization scheme
 # WARNING: Label Ordering VVV important, overwriting possible. Put largest labels first
+# @WARNING: Keeping it, do not use it
+raise DeprecationWarning("This file will be removed in the near future")
+
 ALL_SEG_MAP = {
     "TSPrime": {
         # Harmonized

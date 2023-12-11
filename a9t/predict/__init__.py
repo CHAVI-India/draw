@@ -1,2 +1,2 @@
-from .predict import *
 from .evaluate import *
+from .predict import *

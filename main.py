@@ -1,13 +1,9 @@
-"""
-CLI of AutoSegment (A9T) Pipeline
-"""
-
 import click
 
-from a9t.common.utils import get_all_folders_from_raw_dir
+from a9t.utils.ioutils import get_all_folders_from_raw_dir, get_all_dicom_dirs
 from a9t.dao.table import DicomLog
-from a9t.mapping import ALL_SEG_MAP
-from a9t.predict import folder_predict, get_all_dicom_dirs
+from a9t.config import ALL_SEG_MAP
+from a9t.predict import folder_predict
 from a9t.preprocess.preprocess_data import convert_dicom_dir_to_nnunet_dataset
 
 
@@ -119,7 +115,7 @@ def preprocess(root_dir, dataset_id, dataset_name, start, only_original):
 )
 def predict(preds_dir, dataset_name, root_dir, only_original):
     all_dicom_dirs = get_all_dicom_dirs(root_dir)
-    dcm_logs = [DicomLog(input_path=dcm.input_path) for dcm in all_dicom_dirs]
+    dcm_logs = [DicomLog(input_path=input_path) for input_path in all_dicom_dirs]
     folder_predict(dcm_logs, preds_dir, dataset_name, only_original)
 
 

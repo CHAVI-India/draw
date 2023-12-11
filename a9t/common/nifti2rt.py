@@ -1,21 +1,14 @@
 import glob
 import os
 import warnings
-from typing import List
 
 import nibabel as nib
 import numpy as np
 import pandas as pd
 from rt_utils import RTStructBuilder
 
-from a9t.class_mapping import ALL_SEG_MAP
-from a9t.constants import DB_NAME
+from a9t.config import ALL_SEG_MAP, CSV_FILE_PATH, RT_DEFAULT_FILE_NAME, DB_NAME
 from a9t.dao.db import DBConnection
-from a9t.dao.table import DicomLog
-
-CSV_FILE_PATH = "data/db/db.csv"
-NNUNET_RESULTS_KEY = "nnUNet_results"
-RT_DEFAULT_FILE_NAME = "Pred_RT.dcm"
 
 
 def convert_multilabel_nifti_to_rtstruct(
@@ -77,7 +70,8 @@ def get_sample_summary(s_no, summaries):
     d = {}
 
     for idx in s_summary["metrics"].keys():
-        d[ALL_SEG_MAP["TSGyne"][int(idx)]] = round(s_summary["metrics"][idx]["Dice"], 4)
+        ts_gyne = "TSGyne"
+        d[ALL_SEG_MAP[ts_gyne][int(idx)]] = round(s_summary["metrics"][idx]["Dice"], 4)
     # metrics, 1, Dice
     return d
 

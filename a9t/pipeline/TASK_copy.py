@@ -3,19 +3,19 @@ import os.path
 import shutil
 import time
 
+from pydicom import dcmread
 from watchdog.events import PatternMatchingEventHandler, FileSystemEvent
 from watchdog.observers import Observer
-from pydicom import dcmread
 
-from a9t.common.utils import get_immediate_dicom_parent_dir
+from a9t.config import DICOM_WATCH_DIR, PROTOCOL_TO_MODEL
 from a9t.dao.db import DBConnection
 from a9t.dao.table import DicomLog
-from a9t.config import DICOM_WATCH_DIR, PROTOCOL_TO_MODEL
+from a9t.utils.ioutils import get_immediate_dicom_parent_dir
 
 SERVER_OUTPUT_DIR = DICOM_WATCH_DIR
 DICOM_FILE_FILTER_REGEX = "**/*.dcm"
 WAIT_FOR_COPY_PAUSE_SECONDS = 1
-RAW_DIR = os.path.join("data", "raw")
+RAW_DIR = os.path.join("../../data", "raw")
 
 
 def copy_filtered_files(src_dir, dst_base_dir, filter_fxn):
@@ -77,9 +77,9 @@ def on_modified(event: FileSystemEvent):
 
 
 def wait_copy_finish(filename):
-    historicalSize = -1
-    while historicalSize != os.path.getsize(filename):
-        historicalSize = os.path.getsize(filename)
+    old_size = -1
+    while old_size != os.path.getsize(filename):
+        old_size = os.path.getsize(filename)
         time.sleep(5)
     print("file copy has now finished")
 

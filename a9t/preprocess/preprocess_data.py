@@ -9,17 +9,13 @@ import numpy as np
 
 from a9t.adapters.nnunetv2 import NNUNetV2Adapter
 from a9t.common.dcm2nii import convert_DICOM_to_Multi_NIFTI
-from a9t.common.utils import (
+from a9t.config import TEMP_DIR_BASE, NNUNET_RAW_DATA_ENV_KEY, DB_NAME
+from a9t.utils.ioutils import (
     get_rt_file_path,
     read_json,
     write_json,
     get_immediate_dicom_parent_dir,
-)
-from a9t.constants import (
-    TEMP_DIR_BASE,
-    NNUNET_RAW_DATA_ENV_KEY,
-    BASE_DIR,
-    DB_NAME,
+    normpath, assert_env_key_set,
 )
 
 
@@ -88,7 +84,7 @@ def append_data_to_db(
     """
     Adds data to JSON file for later usage
     """
-    db_path = f"{dataset_dir}/{DB_NAME}"
+    db_path = normpath(f"{dataset_dir}/{DB_NAME}")
 
     sample_data = {
         "DatasetID": dataset_id,
@@ -113,19 +109,16 @@ def get_data_save_paths(
     extension,
 ):
     
-    BASE_DIR = os.environ.get(NNUNET_RAW_DATA_ENV_KEY, None)
-    if BASE_DIR is None:
-        raise ValueError(f"Value of {NNUNET_RAW_DATA_ENV_KEY} is not set. Aborting...")
-
-    dataset_dir = f"{BASE_DIR}/Dataset{dataset_id}_{dataset_name}"
-    train_dir, labels_dir = f"{dataset_dir}/imagesTr", f"{dataset_dir}/labelsTr"
+    base_dir = assert_env_key_set(NNUNET_RAW_DATA_ENV_KEY)
+    dataset_dir = normpath(f"{base_dir}/Dataset{dataset_id}_{dataset_name}")
+    train_dir, labels_dir = normpath(f"{dataset_dir}/imagesTr"), normpath(f"{dataset_dir}/labelsTr")
 
     os.makedirs(train_dir, exist_ok=True)
     os.makedirs(labels_dir, exist_ok=True)
 
     img_save_path, seg_save_path = (
-        f"{train_dir}/{data_tag}_{sample_number}_0000.{extension}",
-        f"{labels_dir}/{data_tag}_{sample_number}.{extension}",
+        normpath(f"{train_dir}/{data_tag}_{sample_number}_0000.{extension}"),
+        normpath(f"{labels_dir}/{data_tag}_{sample_number}.{extension}"),
     )
     return img_save_path, seg_save_path, dataset_dir
 
@@ -179,11 +172,12 @@ def combine_masks_to_multilabel_file(masks_dir, multilabel_file, seg_map):
 
 
 def make_dataset_json_file(dataset_dir, seg_map):
-    samples = glob(f"{dataset_dir}/imagesTr/*.nii.gz")
+    samples = glob(normpath(f"{dataset_dir}/imagesTr/**.nii.gz"))
     train_samples = int(1 * len(samples))
     test_samples = len(samples) - train_samples
 
     json_data = {
+        # TODO: Get modality from DICOM image
         "channel_names": {
             "0": "CT",
         },
@@ -196,5 +190,5 @@ def make_dataset_json_file(dataset_dir, seg_map):
         "numTest": test_samples,
     }
 
-    with open(f"{dataset_dir}/dataset.json", "w", encoding="utf-8") as f:
+    with open(normpath(f"{dataset_dir}/dataset.json"), "w", encoding="utf-8") as f:
         json.dump(json_data, f, ensure_ascii=False, indent=4)

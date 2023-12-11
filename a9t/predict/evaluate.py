@@ -2,7 +2,7 @@ import json
 import os
 
 from a9t.adapters.nnunetv2 import NNUNetV2Adapter, default_nnunet_adapter
-from a9t.constants import DEFAULT_FOLD
+from a9t.config import DEFAULT_FOLD
 
 DATASET_JSON_FILENAME = "dataset.json"
 PLANS_JSON_FILENAME = "plans.json"

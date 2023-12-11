@@ -3,19 +3,22 @@ import subprocess as sp
 import time
 from typing import List
 
-from a9t.common.utils import remove_stuff
 from a9t.config import MODEL_CONFIG
 from a9t.dao.db import DBConnection
 from a9t.dao.table import Status, DicomLog
 from a9t.predict import folder_predict
+from a9t.utils.ioutils import remove_stuff
 
 GPU_RECHECK_TIME_SECONDS = 30
 REQUIRED_FREE_MEMORY_BYTES = 6 * 1024
-DEFAULT_PREDS_BASE_DIR = "output"
+DEFAULT_PREDS_BASE_DIR = "../../output"
+
 
 def get_gpu_memory():
     command = "nvidia-smi --query-gpu=memory.free --format=csv"
-    memory_free_info = sp.check_output(command.split()).decode('ascii').split('\n')[:-1][1:]
+    memory_free_info = (
+        sp.check_output(command.split()).decode("ascii").split("\n")[:-1][1:]
+    )
     memory_free_values = [int(x.split()[0]) for i, x in enumerate(memory_free_info)]
     print("FREE GPU MEMORY:", memory_free_values)
     return int(memory_free_values[0])
@@ -43,7 +46,6 @@ def run_prediction(seg_model_name):
         send_to_external_server(pred_dcm_logs)
         return True
     return False
-
 
 
 if __name__ == "__main__":
