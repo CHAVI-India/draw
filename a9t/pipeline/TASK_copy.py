@@ -55,8 +55,8 @@ def determine_model(dir_path):
 
         return model_name, os.path.join(RAW_DIR, model_name)
 
-    except Exception as e:
-        print("Exception", e)
+    except Exception:
+        LOG.error(f"Exception while processing: {dir_path}", exc_info=True)
         return None, None
 
 
@@ -82,7 +82,7 @@ def on_modified(event: FileSystemEvent):
                 status=Status.INIT,
             )
             conn.insert([dcm])
-            print(f"Added {dir_path} in DB")
+            LOG.info(f"{dir_path} in DB with INIT")
 
 
 def wait_copy_finish(filename):

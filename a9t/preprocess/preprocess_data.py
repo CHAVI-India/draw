@@ -7,9 +7,15 @@ from glob import glob
 import nibabel as nib
 import numpy as np
 
-from a9t.adapters.nnunetv2 import NNUNetV2Adapter
-from a9t.common.dcm2nii import convert_DICOM_to_Multi_NIFTI
-from a9t.config import TEMP_DIR_BASE, NNUNET_RAW_DATA_ENV_KEY, DB_NAME
+from a9t.accessor.nnunetv2 import NNUNetV2Adapter
+from a9t.utils.dcm2nii import DicomConverters
+from a9t.config import (
+    TEMP_DIR_BASE,
+    NNUNET_RAW_DATA_ENV_KEY,
+    DB_NAME,
+    LOG,
+    DEFAULT_MASK_NAME,
+)
 from a9t.utils.ioutils import (
     get_rt_file_path,
     read_json,
@@ -38,6 +44,8 @@ def convert_dicom_dir_to_nnunet_dataset(
     Converts dicom_dir into nnUnet format dataset
 
     Args:
+        seg_map:
+        only_original:
         dicom_dir: (str) Full path of extracted DICOM files. The dir should contains .dcm files
         from the same series. RT Struct should be present in the directory
 
@@ -66,7 +74,7 @@ def convert_dicom_dir_to_nnunet_dataset(
     convert_dicom_to_nifti(
         dicom_dir, img_save_path, seg_save_path, seg_map, only_original
     )
-    make_dataset_json_file(dataset_dir, seg_map=seg_map)
+    make_dataset_json_file(dataset_dir, seg_map=seg_map, modality="CT")
     append_data_to_db(
         dataset_id,
         sample_number,
@@ -135,7 +143,7 @@ def convert_dicom_to_nifti(
     with tempfile.TemporaryDirectory(dir=TEMP_DIR_BASE) as temp_dir:
         rt_file_path = get_rt_file_path(dicom_dir) if not only_original else None
         dicom_dir_immediate_parent = get_immediate_dicom_parent_dir(dicom_dir)
-        convert_DICOM_to_Multi_NIFTI(
+        DicomConverters.convert_DICOM_to_Multi_NIFTI(
             rt_file_path,
             dicom_dir_immediate_parent,
             temp_dir,
@@ -149,31 +157,33 @@ def convert_dicom_to_nifti(
             combine_masks_to_multilabel_file(temp_dir, seg_save_path, seg_map)
 
 
-def combine_masks_to_multilabel_file(masks_dir, multilabel_file, seg_map):
+def combine_masks_to_multilabel_file(masks_dir, output_nifti_path, seg_map):
     """
     Generate one multilabel nifti file from a directory of single binary masks of each class.
     This multilabel file is needed to train a nnU-Net.
 
     masks_dir: path to directory containing all the masks for one subject
-    multilabel_file: path of the output file (a nifti file)
+    output_nifti_path: path of the output file (a nifti file)
     """
-    one_mask = glob(f"{masks_dir}/**.nii.gz")[0]
+    one_mask = glob(f"{masks_dir}/{DEFAULT_MASK_NAME}")[0]
     reference_image = nib.load(one_mask)
     output_image: np.ndarray = np.zeros(reference_image.shape).astype(np.uint8)
 
     for seg_fill_value, seg_name in seg_map.items():
-        print("Processing Map: ", seg_name)
+        LOG.info(f"Processing Map {seg_name} for {output_nifti_path}")
         if os.path.exists(f"{masks_dir}/{seg_name}.nii.gz"):
             img = nib.load(f"{masks_dir}/{seg_name}.nii.gz").get_fdata()
         else:
-            print(f"Mask {seg_name} is missing. Filling with zeros.")
+            LOG.warning(
+                f"{seg_name} missing for {output_nifti_path}. Generated Zero filled mask"
+            )
             img = np.zeros(reference_image.shape)
         output_image[img > 0.5] = seg_fill_value
 
-    nib.save(nib.Nifti1Image(output_image, reference_image.affine), multilabel_file)
+    nib.save(nib.Nifti1Image(output_image, reference_image.affine), output_nifti_path)
 
 
-def make_dataset_json_file(dataset_dir, seg_map):
+def make_dataset_json_file(dataset_dir, seg_map, modality):
     samples = glob(normpath(f"{dataset_dir}/imagesTr/**.nii.gz"))
     train_samples = int(1 * len(samples))
     test_samples = len(samples) - train_samples
@@ -181,7 +191,7 @@ def make_dataset_json_file(dataset_dir, seg_map):
     json_data = {
         # TODO: Get modality from DICOM image
         "channel_names": {
-            "0": "CT",
+            "0": modality,
         },
         "labels": {
             "background": 0,

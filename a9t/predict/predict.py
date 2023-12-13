@@ -3,11 +3,11 @@ import shutil
 from datetime import datetime
 from typing import List
 
-from a9t.common.nifti2rt import convert_nifti_outputs_to_dicom
-from a9t.config import ALL_SEG_MAP
+from a9t.utils.nifti2rt import convert_nifti_outputs_to_dicom
+from a9t.config import ALL_SEG_MAP, LOG, SAMPLE_NUMBER_ZFILL
 from a9t.dao.table import DicomLog
 from a9t.postprocess import postprocess_folder
-from a9t.predict.evaluate import generate_labels_on_data
+from a9t.evaluate.evaluate import generate_labels_on_data
 from a9t.preprocess.preprocess_data import convert_dicom_dir_to_nnunet_dataset
 from a9t.utils.ioutils import remove_stuff, normpath
 
@@ -33,7 +33,7 @@ def folder_predict(dcm_logs: List[DicomLog], preds_dir, dataset_name, only_origi
         LOG.info(f"Found {len(dcm_input_paths)} directories to work on...")
 
         for idx, dicom_dir in enumerate(dcm_input_paths):
-            sample_number = str(idx).zfill(3)
+            sample_number = str(idx).zfill(SAMPLE_NUMBER_ZFILL)
 
             dataset_dir = convert_dicom_dir_to_nnunet_dataset(
                 dicom_dir,

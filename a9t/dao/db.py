@@ -1,11 +1,17 @@
-from typing import List
+from typing import List, Any
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import text
 
 from .table import DicomLog, Status
-from ..config import DB_CONFIG, MODEL_CONFIG, PRED_BATCH_SIZE
+from ..config import DB_CONFIG, MODEL_CONFIG, PRED_BATCH_SIZE, LOG
+
+_ENGINE = create_engine(
+    DB_CONFIG["URL"],
+    echo=False,
+    isolation_level="READ UNCOMMITTED",
+)
 
 
 class DBConnection:
@@ -14,20 +20,19 @@ class DBConnection:
     """
 
     def __init__(self):
-        self.engine = create_engine(
-            DB_CONFIG["URL"], echo=True, isolation_level="READ UNCOMMITTED"
-        )
+        self.engine = _ENGINE
         self.session = sessionmaker(bind=self.engine)()
         self._table_name = DicomLog.__tablename__
         self.BATCH_SIZE = PRED_BATCH_SIZE
         self.create_table_if_not_exists()
 
     def create_table_if_not_exists(self):
+        """Creates Default table if not exists"""
         if not self.engine.dialect.has_table(self.engine.connect(), self._table_name):
             DicomLog.metadata.create_all(self.engine)
-            print("Created Table")
+            LOG.info(f"Table {self._table_name} created")
 
-    def top(self, dataset_name, status: Status):
+    def top(self, dataset_name: str, status: Status) -> List[DicomLog]:
         if dataset_name not in MODEL_CONFIG["KEYS"]:
             raise KeyError(f"{dataset_name} not in {MODEL_CONFIG['KEYS']}")
         query = (
@@ -38,14 +43,16 @@ class DBConnection:
             "ORDER BY created_on DESC "
             "LIMIT {}"
         ).format(self._table_name, dataset_name, status.value, self.BATCH_SIZE)
-        print(query)
         with self.engine.connect() as conn:
             result_set = conn.execute(text(query))
-            return [self.convert_to_obj(row) for row in result_set]
+            result_objects = [self.convert_to_obj(row) for row in result_set]
+            LOG.info(f"Found {len(result_objects)}")
+            return result_set
 
     def insert(self, dcm_log: List[DicomLog]):
         self.session.add_all(dcm_log)
         self.session.commit()
+        LOG.info(f"Added {len(dcm_log)} to DB")
 
     def update_status(
         self,
@@ -58,9 +65,10 @@ class DBConnection:
         with self.engine.connect() as conn:
             conn.execute(text(q))
             conn.commit()
+        LOG.info(f"Updated Status of {dcm_log.id} to {updated_status.value}")
 
     @staticmethod
-    def convert_to_obj(row):
+    def convert_to_obj(row: Any) -> DicomLog:
         obj = DicomLog(
             id=row.id,
             input_path=row.input_path,
@@ -71,7 +79,8 @@ class DBConnection:
         )
         return obj
 
-    def update(self, series_name, output_path):
+    def update(self, series_name: str, output_path: str):
+        """Updates Status and Output Path of given series name"""
         q = "UPDATE dicomlog SET status='{}', output_path='{}' WHERE dicomlog.series_name='{}'".format(
             Status.PREDICTED.value,
             series_name,
@@ -80,3 +89,4 @@ class DBConnection:
         with self.engine.connect() as conn:
             conn.execute(text(q))
             conn.commit()
+        LOG.info(f"Updated Status of {series_name} to {Status.PREDICTED.value}")

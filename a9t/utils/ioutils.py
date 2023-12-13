@@ -7,16 +7,11 @@ from pathlib import Path
 
 from pydicom import dcmread
 
-from a9t.config import RTSTRUCT_STRING, DCM_REGEX
+from a9t.config import RTSTRUCT_STRING, DCM_REGEX, LOG, DicomKeyToTag
 
 
 def normpath(path):
     return os.path.normpath(path)
-
-
-def clear_out_old_files(dir_path):
-    if os.path.exists(dir_path):
-        shutil.rmtree(dir_path)
 
 
 def get_all_folders_from_raw_dir(dir_path):
@@ -77,3 +72,11 @@ def assert_env_key_set(key):
     if base_dir is None:
         raise ValueError(f"Value of {key} is not set. Aborting...")
     return base_dir
+
+
+# TODO: Get modality from DICOM images
+def get_dicom_modality(dcm_file_name: str) -> str | None:
+    f = dcmread(dcm_file_name)
+    if DicomKeyToTag.modality in f:
+        return str(f[DicomKeyToTag.modality])
+    return None

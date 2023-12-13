@@ -1,12 +1,29 @@
 import json
 import os
 
-from a9t.adapters.nnunetv2 import NNUNetV2Adapter, default_nnunet_adapter
-from a9t.config import DEFAULT_FOLD
+from a9t.accessor.nnunetv2 import NNUNetV2Adapter, default_nnunet_adapter
+from a9t.config import (
+    ALL_SEG_MAP,
+    DEFAULT_FOLD,
+    DATASET_JSON_FILENAME,
+    PLANS_JSON_FILENAME,
+    SUMMARY_JSON_FILENAME,
+)
 
-DATASET_JSON_FILENAME = "dataset.json"
-PLANS_JSON_FILENAME = "plans.json"
-SUMMARY_JSON_FILENAME = "summary.json"
+# TODO: This file is a mess. Make it no more
+
+
+def get_sample_summary(s_no, summaries):
+    # summaries is the array 'metric_per_case'
+    s_summary = [s for s in summaries if f"seg_{s_no}" in s["reference_file"]][0]
+
+    d = {}
+
+    for idx in s_summary["metrics"].keys():
+        ts_gyne = "TSGyne"
+        d[ALL_SEG_MAP[ts_gyne][int(idx)]] = round(s_summary["metrics"][idx]["Dice"], 4)
+    # metrics, 1, Dice
+    return d
 
 
 def evaluate_nnunet_on_folder(

@@ -2,7 +2,7 @@ import click
 
 from a9t.utils.ioutils import get_all_folders_from_raw_dir, get_all_dicom_dirs
 from a9t.dao.table import DicomLog
-from a9t.config import ALL_SEG_MAP, LOG
+from a9t.config import ALL_SEG_MAP, LOG, SAMPLE_NUMBER_ZFILL
 from a9t.predict import folder_predict
 from a9t.preprocess.preprocess_data import convert_dicom_dir_to_nnunet_dataset
 
@@ -15,13 +15,13 @@ def cli():
     pass
 
 
-@cli.command(help="Convert DICOM Data to NNUNet format")
+@cli.command(help="Preprocess DICOM Data to nnUNet format")
 @click.option(
     "--root-dir",
     "-d",
     type=str,
     required=True,
-    help="Parent Directory containing extracted DICOM directories",
+    help="Parent Directory containing other DICOM directories",
 )
 @click.option(
     "--dataset-id",
@@ -35,7 +35,7 @@ def cli():
     "-n",
     type=click.Choice(ALL_SEG_MAP.keys()),
     required=True,
-    help="Name of the dataset",
+    help="Name of the dataset from given list",
 )
 @click.option(
     "--start",
@@ -48,7 +48,7 @@ def cli():
 @click.option(
     "--only-original",
     is_flag=True,
-    help="Convert only original DICOM",
+    help="Convert only original DICOM. Set this to disable RTStruct file searching and parsing",
 )
 def preprocess(root_dir, dataset_id, dataset_name, start, only_original):
     task_map = ALL_SEG_MAP[dataset_name]
@@ -61,7 +61,7 @@ def preprocess(root_dir, dataset_id, dataset_name, start, only_original):
     seg_map = dataset_specific_map["map"]
 
     for idx, dicom_dir in enumerate(all_dicom_dirs, start=start):
-        sample_number = str(idx).zfill(3)
+        sample_number = str(idx).zfill(SAMPLE_NUMBER_ZFILL)
 
         convert_dicom_dir_to_nnunet_dataset(
             dicom_dir,
@@ -112,6 +112,7 @@ def preprocess(root_dir, dataset_id, dataset_name, start, only_original):
 @click.option(
     "--only-original",
     is_flag=True,
+    help="Convert only original DICOM. Set this to disable RTStruct file searching and parsing",
 )
 def predict(preds_dir, dataset_name, root_dir, only_original):
     all_dicom_dirs = get_all_dicom_dirs(root_dir)

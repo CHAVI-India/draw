@@ -48,3 +48,66 @@ models:
       1: Bowel
     trainer_name: nnUNetTrainer
     postprocess: null
+  824:
+    name: TSGyneCtvnObturator
+    config: 3d_lowres
+    map:
+      1: Ctvn_Obturator
+    trainer_name: nnUNetTrainer
+    postprocess: null
+  825:
+    name: TSGyneCtvnParaaortic
+    config: 3d_lowres
+    map:
+      1: Ctvn_Paraaortic
+    trainer_name: nnUNetTrainer
+    postprocess: null
+  826:
+    name: TSGyneCtvnIntIliac
+    config: 3d_lowres
+    map:
+      1: Ctvn_Int_Iliac
+    trainer_name: nnUNetTrainer
+    postprocess: null
+  827:
+    name: TSGyneCtvnComIliac
+    config: 3d_lowres
+    map:
+      1: Ctvn_Com_Iliac
+    trainer_name: nnUNetTrainer
+    postprocess: null
+  828:
+    name: TSGyneVsIntIliac
+    config: 3d_lowres
+    map:
+      1: Vs_Int_Iliac
+    trainer_name: nnUNetTrainer
+    postprocess: null
+  829:
+    name: TSGyneVsExtIliac
+    config: 3d_lowres
+    map:
+      1: Vs_Ext_Iliac
+    trainer_name: nnUNetTrainer
+    postprocess: null
+  830:
+    name: TSGyneBagBowel
+    config: 3d_lowres
+    map:
+      1: Bag_Bowel
+    trainer_name: nnUNetTrainer
+    postprocess: null
+  831:
+    name: TSGyneSpinalCord
+    config: 3d_lowres
+    map:
+      1: SpinalCord
+    trainer_name: nnUNetTrainer
+    postprocess: null
+  832:
+    name: TSGyneGtvn
+    config: 3d_lowres
+    map:
+      1: Gtvn
+    trainer_name: nnUNetTrainer
+    postprocess: null

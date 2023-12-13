@@ -1,7 +1,8 @@
+import dataclasses
 import os
 
+from a9t.utils.logging import get_log
 from a9t.utils.mapping import get_model_maps
-import logging.config
 
 # Path Configs, change as per Environment
 DB_CONFIG = {
@@ -27,29 +28,19 @@ NNUNET_RESULTS_KEY = "nnUNet_results"
 RT_DEFAULT_FILE_NAME = "Pred_RT.dcm"
 RTSTRUCT_STRING = "RTSTRUCT"
 DCM_REGEX = "**/**.dcm"
+LOG = get_log()
+DEFAULT_MASK_NAME = "a9t_default_mask.nii.gz"
+SAMPLE_NUMBER_ZFILL = 3
 
-# Logging
-log_config = {
-    "version": 1,
-    "handlers": {
-        "console": {
-            "class": "logging.StreamHandler",
-            "formatter": "custom_format",
-        },
-    },
-    "formatters": {
-        "custom_format": {
-            "format": "%(asctime)s [%(levelname)s]: %(message)s",
-        },
-    },
-    "root": {
-        "level": "DEBUG",
-        "handlers": ["console"],
-    },
-}
 
-# Configure the logger using the dictionary configuration
-logging.config.dictConfig(log_config)
+# DCM Tag
+@dataclasses.dataclass
+class DicomKeyToTag:
+    modality: tuple = (0x0008, 0x0060)
 
-# Create the logger named 'LOG'
-LOG = logging.getLogger("LOG")
+
+DEFAULT_DATASET_TAG = "seg"
+SAMPLE_SEP_DELIM = "seg_"
+DATASET_JSON_FILENAME = "dataset.json"
+PLANS_JSON_FILENAME = "plans.json"
+SUMMARY_JSON_FILENAME = "summary.json"
