@@ -15,7 +15,8 @@ from a9t.utils.ioutils import (
     read_json,
     write_json,
     get_immediate_dicom_parent_dir,
-    normpath, assert_env_key_set,
+    normpath,
+    assert_env_key_set,
 )
 
 
@@ -108,10 +109,11 @@ def get_data_save_paths(
     sample_number,
     extension,
 ):
-    
     base_dir = assert_env_key_set(NNUNET_RAW_DATA_ENV_KEY)
     dataset_dir = normpath(f"{base_dir}/Dataset{dataset_id}_{dataset_name}")
-    train_dir, labels_dir = normpath(f"{dataset_dir}/imagesTr"), normpath(f"{dataset_dir}/labelsTr")
+    train_dir, labels_dir = normpath(f"{dataset_dir}/imagesTr"), normpath(
+        f"{dataset_dir}/labelsTr"
+    )
 
     os.makedirs(train_dir, exist_ok=True)
     os.makedirs(labels_dir, exist_ok=True)

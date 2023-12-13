@@ -42,7 +42,9 @@ def check_yaml_dict_schema(template_schema, read_schema):
 
 def get_model_maps(config_root_dir: str) -> tuple[dict, dict]:
     all_seg_map, protocol_to_model = {}, {}
-    for file_name in glob.glob(os.path.join(config_root_dir, "**", "*.yml"), recursive=True):
+    for file_name in glob.glob(
+        os.path.join(config_root_dir, "**", "*.yml"), recursive=True
+    ):
         print("Reading", file_name)
         schema = check_yaml_dict_schema(CONF_SCHEMA, get_dict_from_yaml(file_name))
         if schema is not None:
@@ -52,5 +54,3 @@ def get_model_maps(config_root_dir: str) -> tuple[dict, dict]:
             print(file_name, "is erroneous. Skipping...")
 
     return all_seg_map, protocol_to_model
-
-

@@ -2,7 +2,7 @@ import click
 
 from a9t.utils.ioutils import get_all_folders_from_raw_dir, get_all_dicom_dirs
 from a9t.dao.table import DicomLog
-from a9t.config import ALL_SEG_MAP
+from a9t.config import ALL_SEG_MAP, LOG
 from a9t.predict import folder_predict
 from a9t.preprocess.preprocess_data import convert_dicom_dir_to_nnunet_dataset
 
@@ -53,8 +53,8 @@ def cli():
 def preprocess(root_dir, dataset_id, dataset_name, start, only_original):
     task_map = ALL_SEG_MAP[dataset_name]
     all_dicom_dirs = get_all_folders_from_raw_dir(root_dir)
-    print("Processing ID", dataset_id)
-    print(f"Found {len(all_dicom_dirs)} directories to work on...")
+    LOG.info("Processing ID", dataset_id)
+    LOG.info(f"Found {len(all_dicom_dirs)} directories to work on...")
 
     dataset_specific_map = task_map[int(dataset_id)]
     dataset_name = dataset_specific_map["name"]

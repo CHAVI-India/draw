@@ -1,9 +1,18 @@
-from subprocess import Popen
+from multiprocessing import Process
+
+from a9t.config import LOG
+from a9t.pipeline.TASK_copy import task_watch_dir
+from a9t.pipeline.TASK_predict import task_model_prediction
 
 if __name__ == "__main__":
-    commands = ["python a9t/pipeline/TASK_copy.py", "python a9t/pipeline/TASK_predict.py"]
+    all_processes = []
+    process_functions = [task_model_prediction, task_watch_dir]
 
-    procs = [Popen(i.split()) for i in commands]
+    for fxn in process_functions:
+        p = Process(target=fxn)
+        LOG.info(f"Starting {fxn.__name__}")
+        p.start()
+        all_processes.append(p)
 
-    for p in procs:
-        p.wait()
+    for p in all_processes:
+        p.join()

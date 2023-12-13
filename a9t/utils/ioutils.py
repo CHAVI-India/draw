@@ -57,6 +57,7 @@ def get_files_not_rt(dicom_dir) -> list[str]:
 
 def remove_stuff(path):
     if os.path.exists(path):
+        LOG.info(f"Deleting {path}")
         shutil.rmtree(path)
 
 

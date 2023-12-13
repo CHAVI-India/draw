@@ -3,7 +3,7 @@ import subprocess as sp
 import time
 from typing import List
 
-from a9t.config import MODEL_CONFIG
+from a9t.config import MODEL_CONFIG, LOG
 from a9t.dao.db import DBConnection
 from a9t.dao.table import Status, DicomLog
 from a9t.predict import folder_predict
@@ -20,7 +20,6 @@ def get_gpu_memory():
         sp.check_output(command.split()).decode("ascii").split("\n")[:-1][1:]
     )
     memory_free_values = [int(x.split()[0]) for i, x in enumerate(memory_free_info)]
-    print("FREE GPU MEMORY:", memory_free_values)
     return int(memory_free_values[0])
 
 
@@ -30,9 +29,11 @@ def copy_input_dcm_to_output(input_dir, output_dir):
 
 
 def send_to_external_server(pred_dcm_logs: List[DicomLog]):
-    dcm_output_dirs = [dcm.output_path for dcm in pred_dcm_logs]
+    # dcm_output_dirs = [dcm.output_path for dcm in pred_dcm_logs]
     # TODO: dcm_output_dirs got, check how to send to server
-    pass
+    conn = DBConnection()
+    for dcm in pred_dcm_logs:
+        conn.update_status(dcm, Status.SENT)
 
 
 def run_prediction(seg_model_name):
@@ -48,15 +49,17 @@ def run_prediction(seg_model_name):
     return False
 
 
-if __name__ == "__main__":
+def task_model_prediction():
     while True:
         gpu_memory_free = get_gpu_memory()
-        if gpu_memory_free >= REQUIRED_FREE_MEMORY_BYTES:
-            print("STARTING PREDICTIING...")
-            model_ran = False
-            for model_name in MODEL_CONFIG["KEYS"]:
-                model_ran = model_ran or run_prediction(model_name)
+        any_model_ran = False
 
-        if not model_ran:
-            print("GPU NOT FREE")
+        if gpu_memory_free >= REQUIRED_FREE_MEMORY_BYTES:
+            for model_name in MODEL_CONFIG["KEYS"]:
+                LOG.info(f"{gpu_memory_free} MB free GPU. Trying {model_name}")
+                any_model_ran = any_model_ran or run_prediction(model_name)
+
+        if not any_model_ran:
+            LOG.info(f"Free GPU: {gpu_memory_free} MB")
+            LOG.info(f"Any Model ran: {any_model_ran}")
             time.sleep(GPU_RECHECK_TIME_SECONDS)

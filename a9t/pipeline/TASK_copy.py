@@ -7,11 +7,12 @@ from pydicom import dcmread
 from watchdog.events import PatternMatchingEventHandler, FileSystemEvent
 from watchdog.observers import Observer
 
-from a9t.config import DICOM_WATCH_DIR, PROTOCOL_TO_MODEL
+from a9t.config import DICOM_WATCH_DIR, PROTOCOL_TO_MODEL, LOG
 from a9t.dao.db import DBConnection
-from a9t.dao.table import DicomLog
+from a9t.dao.table import DicomLog, Status
 from a9t.utils.ioutils import get_immediate_dicom_parent_dir
 
+COPY_WAIT_SECONDS = 5
 SERVER_OUTPUT_DIR = DICOM_WATCH_DIR
 DICOM_FILE_FILTER_REGEX = "**/*.dcm"
 WAIT_FOR_COPY_PAUSE_SECONDS = 1
@@ -38,24 +39,29 @@ def filter_files(path):
 
 
 def determine_model(dir_path):
-    one_file_name = glob.glob(os.path.join(dir_path, DICOM_FILE_FILTER_REGEX))[0]
-    ds = dcmread(one_file_name)
     model_name = None
 
-    dcm_protocol_name = ds.ProtocolName.lower()
-    for protocol, model in PROTOCOL_TO_MODEL.items():
-        if protocol in dcm_protocol_name:
-            model_name = model
-            break
+    try:
+        one_file_name = glob.glob(os.path.join(dir_path, DICOM_FILE_FILTER_REGEX))[0]
+        ds = dcmread(one_file_name)
+        dcm_protocol_name = ds.ProtocolName.lower()
+        for protocol, model in PROTOCOL_TO_MODEL.items():
+            if protocol in dcm_protocol_name:
+                model_name = model
+                break
 
-    if model_name is None:
+        if model_name is None:
+            return None, None
+
+        return model_name, os.path.join(RAW_DIR, model_name)
+
+    except Exception as e:
+        print("Exception", e)
         return None, None
-        
-    return model_name, os.path.join(RAW_DIR, model_name)
 
 
 def on_modified(event: FileSystemEvent):
-    print("New Event Detected")
+    LOG.info(f"Modification Detected at {event.src_path}")
 
     if event.is_directory:
         dir_path = event.src_path
@@ -63,14 +69,17 @@ def on_modified(event: FileSystemEvent):
         model_name, raw_dir = determine_model(dir_path)
         if model_name is not None:
             dir_path = copy_filtered_files(dir_path, raw_dir, filter_files)
-            print("Updated Dir Path", dir_path)
+            LOG.info(f"Dir path changed to {dir_path}")
 
             conn = DBConnection()
-            series_name = os.path.basename(get_immediate_dicom_parent_dir(event.src_path))
+            series_name = os.path.basename(
+                get_immediate_dicom_parent_dir(event.src_path)
+            )
             dcm = DicomLog(
                 input_path=dir_path,
                 model=model_name,
                 series_name=series_name,
+                status=Status.INIT,
             )
             conn.insert([dcm])
             print(f"Added {dir_path} in DB")
@@ -80,15 +89,15 @@ def wait_copy_finish(filename):
     old_size = -1
     while old_size != os.path.getsize(filename):
         old_size = os.path.getsize(filename)
-        time.sleep(5)
-    print("file copy has now finished")
+        time.sleep(COPY_WAIT_SECONDS)
+    LOG.info(f"File {filename} copy complete detected")
 
 
 def on_deleted(event):
-    print(f"DELETED {event.src_path}!")
+    LOG.info(f"DELETED {event.src_path}!")
 
 
-if __name__ == "__main__":
+def task_watch_dir():
     patterns = ["*"]
     ignore_patterns = None
     ignore_directories = False
@@ -98,9 +107,10 @@ if __name__ == "__main__":
     )
     my_event_handler.on_modified = on_modified
     my_event_handler.on_deleted = on_deleted
-
     path = os.path.normpath(SERVER_OUTPUT_DIR)
-    print("WATCHING", path)
+
+    LOG.info(f"Started watching {path} for modifications")
+
     go_recursively = False
     my_observer = Observer()
     my_observer.schedule(my_event_handler, path, recursive=go_recursively)

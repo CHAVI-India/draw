@@ -18,7 +18,7 @@ def folder_predict(dcm_logs: List[DicomLog], preds_dir, dataset_name, only_origi
     parent_dataset_name = dataset_name
 
     for dataset_id in task_map.keys():
-        print("Processing ID", dataset_id)
+        LOG.info("Processing ID", dataset_id)
         dataset_specific_map = task_map[dataset_id]
         model_config = dataset_specific_map["config"]
         dataset_name = dataset_specific_map["name"]
@@ -30,7 +30,7 @@ def folder_predict(dcm_logs: List[DicomLog], preds_dir, dataset_name, only_origi
         remove_stuff(dataset_dir)
 
         dcm_input_paths = [dcm.input_path for dcm in dcm_logs]
-        print(f"Found {len(dcm_input_paths)} directories to work on...")
+        LOG.info(f"Found {len(dcm_input_paths)} directories to work on...")
 
         for idx, dicom_dir in enumerate(dcm_input_paths):
             sample_number = str(idx).zfill(3)

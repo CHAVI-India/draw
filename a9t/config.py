@@ -1,6 +1,7 @@
 import os
 
 from a9t.utils.mapping import get_model_maps
+import logging.config
 
 # Path Configs, change as per Environment
 DB_CONFIG = {
@@ -8,8 +9,9 @@ DB_CONFIG = {
     "DB_NAME": "a9t",
     "TABLE_NAME": "dicom_log",
 }
-MODEL_YAML_ROOT_DIR = os.path.normpath("config")
-DICOM_WATCH_DIR = os.path.normpath("D:\DICOM Database\DICOM IMPORT\dicom")
+MODEL_YAML_ROOT_DIR = os.path.normpath("config_yaml")
+# DICOM_WATCH_DIR = os.path.normpath("D:\DICOM Database\DICOM IMPORT\dicom")
+DICOM_WATCH_DIR = os.path.normpath("data/watch")
 
 # Derived CONFIG
 ALL_SEG_MAP, PROTOCOL_TO_MODEL = get_model_maps(MODEL_YAML_ROOT_DIR)
@@ -25,3 +27,29 @@ NNUNET_RESULTS_KEY = "nnUNet_results"
 RT_DEFAULT_FILE_NAME = "Pred_RT.dcm"
 RTSTRUCT_STRING = "RTSTRUCT"
 DCM_REGEX = "**/**.dcm"
+
+# Logging
+log_config = {
+    "version": 1,
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "custom_format",
+        },
+    },
+    "formatters": {
+        "custom_format": {
+            "format": "%(asctime)s [%(levelname)s]: %(message)s",
+        },
+    },
+    "root": {
+        "level": "DEBUG",
+        "handlers": ["console"],
+    },
+}
+
+# Configure the logger using the dictionary configuration
+logging.config.dictConfig(log_config)
+
+# Create the logger named 'LOG'
+LOG = logging.getLogger("LOG")
