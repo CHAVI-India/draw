@@ -7,8 +7,12 @@ import numpy as np
 import pandas as pd
 from rt_utils import RTStructBuilder
 
-from a9t.config import ALL_SEG_MAP, CSV_FILE_PATH, RT_DEFAULT_FILE_NAME, DB_NAME
+from a9t.config import ALL_SEG_MAP, CSV_FILE_PATH, DB_NAME, LOG
 from a9t.dao.db import DBConnection
+
+DEFAULT_DATASET_TAG = "seg"
+
+SAMPLE_SEP_DELIM = "seg_"
 
 
 def convert_multilabel_nifti_to_rtstruct(
@@ -16,13 +20,12 @@ def convert_multilabel_nifti_to_rtstruct(
     dicom_dir: str,
     save_dir: str,
     label_to_name_map: dict[int, str],
-    debug: bool = True,
 ) -> str:
     """Convert multiple NIFTI files to RT"""
 
     os.makedirs(save_dir, exist_ok=True)
 
-    rt_path = f"{save_dir}/{RT_DEFAULT_FILE_NAME}"
+    rt_path = os.path.join(save_dir, "RT_DEFAULT_FILE_NAME")
 
     if os.path.exists(rt_path):
         rtstruct = RTStructBuilder.create_from(dicom_dir, rt_path)
@@ -34,14 +37,12 @@ def convert_multilabel_nifti_to_rtstruct(
     np_mask = np.transpose(np_mask, [1, 0, 2])
 
     for idx, name in label_to_name_map.items():
-        if debug:
-            print("Processing Mask:", name)
-        curr_mask = np_mask == idx
+        LOG.info(f"Processing Mask {name}")
+        curr_mask = (np_mask == idx)
         rtstruct.add_roi(mask=curr_mask, name=name)
 
     rtstruct.save(rt_path)
-    if debug:
-        print("RT saved at:", save_dir)
+    LOG.info(f"RT for {nifti_file_path} saved at {rt_path}")
     return save_dir
 
 
@@ -82,7 +83,7 @@ def modify_splits(splits: dict):
     for key in splits.keys():
         for i in splits[key]:
             d[i.split("_")[-1]] = key
-    print(d)
+    LOG.debug(d)
     return d
 
 
@@ -119,8 +120,8 @@ def add_to_output_csv(dataset_id: int, summaries: list[dict], splits, save_path)
     df_op.to_csv(f"{save_path}/dice.csv", index=False)
 
 
-def get_sample_number_from_nifti_path(nifti_path, delim="seg_"):
-    print("NIFTI path", nifti_path)
+def get_sample_number_from_nifti_path(nifti_path, delim=SAMPLE_SEP_DELIM):
+    LOG.debug("NIFTI path", nifti_path)
     _, txt = nifti_path.split(delim)
     txt = txt.strip("_")
     # 014.nii.gz
@@ -135,11 +136,10 @@ def convert_nifti_outputs_to_dicom(
     exp_number,
     seg_map,
 ):
-    dataset_tag = "seg"
-    print("Model Pred Dir: ", model_pred_dir)
+    dataset_tag = DEFAULT_DATASET_TAG
+    conn = DBConnection()
     for nifti_file_path in glob.glob(f"{model_pred_dir}/**.nii.gz"):
         sample_no = get_sample_number_from_nifti_path(nifti_file_path, dataset_tag)
-        print("Processing Sample: ", sample_no)
         dcm_root_dir, dcm_parent_folder = get_dcm_root_from_csv(
             dataset_id, sample_no, dataset_dir
         )
@@ -149,6 +149,5 @@ def convert_nifti_outputs_to_dicom(
             save_dir=f"{final_output_dir}/{exp_number}/{dcm_parent_folder}",
             label_to_name_map=seg_map,
         )
-        conn = DBConnection()
         conn.update(save_dir, dcm_parent_folder)
     return f"{final_output_dir}/{exp_number}"

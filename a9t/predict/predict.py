@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import List
 
 from a9t.common.nifti2rt import convert_nifti_outputs_to_dicom
-from a9t.config import ALL_SEG_MAP
+from a9t.config import ALL_SEG_MAP, LOG
 from a9t.dao.table import DicomLog
 from a9t.postprocess import postprocess_folder
 from a9t.predict.evaluate import generate_labels_on_data

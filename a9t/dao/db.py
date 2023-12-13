@@ -5,7 +5,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import text
 
 from .table import DicomLog, Status
-from ..config import DB_CONFIG, MODEL_CONFIG, PRED_BATCH_SIZE
+from ..config import DB_CONFIG, MODEL_CONFIG, PRED_BATCH_SIZE, LOG
 
 
 class DBConnection:
@@ -25,7 +25,7 @@ class DBConnection:
     def create_table_if_not_exists(self):
         if not self.engine.dialect.has_table(self.engine.connect(), self._table_name):
             DicomLog.metadata.create_all(self.engine)
-            print("Created Table")
+            LOG.info(f"Table {self._table_name} created")
 
     def top(self, dataset_name, status: Status):
         if dataset_name not in MODEL_CONFIG["KEYS"]:
@@ -38,7 +38,6 @@ class DBConnection:
             "ORDER BY created_on DESC "
             "LIMIT {}"
         ).format(self._table_name, dataset_name, status.value, self.BATCH_SIZE)
-        print(query)
         with self.engine.connect() as conn:
             result_set = conn.execute(text(query))
             return [self.convert_to_obj(row) for row in result_set]

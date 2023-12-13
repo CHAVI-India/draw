@@ -12,6 +12,8 @@ from dcmrtstruct2nii.exceptions import (
     PathDoesNotExistException,
 )
 
+from a9t.config import LOG
+
 
 def convert_DICOM_to_Multi_NIFTI(
     rt_struct_file_path,
@@ -28,6 +30,10 @@ def convert_DICOM_to_Multi_NIFTI(
     """Converts a DICOM and DICOM RT Struct file to NIfTI format.
 
     Args:
+        only_original:
+        mask_foreground_value:
+        mask_background_value:
+        dicom_image_save_path:
         rt_struct_file_path (str): Path to the rtstruct file.
         dicom_file_path (str): Path to the dicom file.
         output_dir (str): Output path where the masks are written to. Make sure trailing slash is there.
@@ -82,14 +88,14 @@ def convert_DICOM_to_Multi_NIFTI(
         for rtstruct in all_rt_structs:
             if len(structures) == 0 or rtstruct["name"] in structures:
                 if "sequence" not in rtstruct:
-                    print(
+                    LOG.info(
                         "Skipping mask {} no shape/polygon found".format(
                             rtstruct["name"]
                         )
                     )
                     continue
 
-                print("Working on mask {}".format(rtstruct["name"]))
+                LOG.info("Working on mask {}".format(rtstruct["name"]))
                 try:
                     mask = dcm_patient_coords_to_mask.convert(
                         rtstruct["sequence"],
@@ -98,7 +104,7 @@ def convert_DICOM_to_Multi_NIFTI(
                         mask_foreground_value,
                     )
                 except ContourOutOfBoundsException:
-                    print(
+                    LOG.info(
                         f'Structure {rtstruct["name"]} is out of bounds, ignoring contour!'
                     )
                     continue
@@ -110,7 +116,8 @@ def convert_DICOM_to_Multi_NIFTI(
                 # Trailing Slash present in output dir
                 nii_output_adapter.write(mask, f"{output_dir}{mask_filename}", gzip)
 
-    print("Converting original DICOM to nii")
+    LOG.info(f"Converting DICOM scan to NII for path {dicom_file_path}")
     nii_output_adapter.write(dicom_image, dicom_image_save_path, gzip)
 
-    print("Success!")
+    LOG.info(f"Conversion for {dicom_file_path} complete")
+    LOG.info(f"Final output saved at {dicom_image_save_path}")
