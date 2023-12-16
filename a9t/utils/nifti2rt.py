@@ -121,7 +121,7 @@ def add_to_output_csv(dataset_id: int, summaries: list[dict], splits, save_path)
 
 
 def get_sample_number_from_nifti_path(nifti_path, delim=SAMPLE_SEP_DELIM):
-    LOG.debug("NIFTI path", nifti_path)
+    LOG.debug(f"NIFTI path {nifti_path}")
     _, txt = nifti_path.split(delim)
     txt = txt.strip("_")
     # 014.nii.gz

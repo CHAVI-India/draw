@@ -14,7 +14,7 @@ from a9t.evaluate.evaluate import generate_labels_on_data
 from a9t.preprocess.preprocess_data import convert_dicom_dir_to_nnunet_dataset
 from a9t.utils.ioutils import remove_stuff, normpath
 
-POOL_WORKERS = 4
+POOL_WORKERS = 2
 
 
 def folder_predict(dcm_logs: List[DicomLog], preds_dir, dataset_name, only_original):
@@ -75,7 +75,7 @@ def predict_one_dataset(
     dataset_name = dataset_specific_map["name"]
     dataset_dir = normpath(f"{raw_base_dir}/Dataset{dataset_id}_{dataset_name}")
 
-    LOG.info("Processing ID", dataset_id)
+    LOG.info(f"Processing ID {dataset_id}")
 
     model_config = dataset_specific_map["config"]
     seg_map = dataset_specific_map["map"]
