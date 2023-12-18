@@ -23,6 +23,9 @@ class NNUNetV2Adapter:
         os.environ[self.NNUNET_RAW] = self.raw_dir
         os.environ[self.NNUNET_PREPROCESSED] = self.preprocessed_dir
         os.environ[self.NNUNET_RESULTS] = self.preds_dir
+        os.environ["nnUNet_def_n_proc"] = "4"
+        os.environ["nnUNet_n_proc_DA"] = "4"
+        os.environ["nnUNet_compile"] = "1"
 
     def postprocess(self, input_folder, output_folder, pkl_file):
         self.set_env()
@@ -93,7 +96,6 @@ class NNUNetV2Adapter:
             dataset_id,
             "-f",
             fold,
-            "--verbose",
             "-chk",
             checkpoint_name,
             "--disable_tta",
@@ -113,6 +115,7 @@ class NNUNetV2Adapter:
             stdout=sys.stdout,
             stderr=sys.stderr,
             check=True,
+            # shell=True,
         )
 
 

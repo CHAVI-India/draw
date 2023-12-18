@@ -7,14 +7,19 @@ log_config = {
             "class": "logging.StreamHandler",
             "formatter": "custom_format",
         },
+        # 'file': {
+        #     'class': 'logging.FileHandler',
+        #     'filename': 'logs/logfile.log', 
+        #     'formatter': 'custom_format',
+        # }, Multiprocessing and Single File not supported
     },
     "formatters": {
         "custom_format": {
-            "format": "%(asctime)s %(levelname)s %(name)s %(message)s",
+            "format": "%(asctime)s [%(levelname)s] %(funcName)s: %(message)s",
         },
     },
     "root": {
-        "level": "DEBUG",
+        "level": "INFO",
         "handlers": ["console"],
     },
 }

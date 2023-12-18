@@ -282,3 +282,4 @@ tsprime_ctvn*
 preds
 .vscode
 .venv39
+output/*

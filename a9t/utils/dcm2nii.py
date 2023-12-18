@@ -137,7 +137,7 @@ class DicomConverters:
             empty_mask.CopyInformation(dicom_image)
             default_empty_mask_path = f"{output_dir}{DEFAULT_MASK_NAME}"
             nii_output_adapter.write(empty_mask, default_empty_mask_path, gzip)
-            LOG.info("Saved Default Empty Mask at {default_empty_mask_path}")
+            LOG.info(f"Saved Default Empty Mask at {default_empty_mask_path}")
 
         LOG.info(f"Conversion for {dicom_file_path} complete")
         LOG.info(f"Final output saved at {dicom_image_save_path}")
