@@ -1,10 +1,12 @@
 import glob
 import os
+import shutil
 
 from a9t.accessor.nnunetv2 import default_nnunet_adapter
 from a9t.config import (
     LOG,
     ALL_SEG_MAP,
+    NNUNET_PREPROCESSED_ENV_KEY,
     NNUNET_RAW_DATA_ENV_KEY,
     NNUNET_RESULTS_DATA_ENV_KEY,
     DATASET_JSON_FILENAME,
@@ -13,9 +15,22 @@ from a9t.config import (
 from a9t.utils.ioutils import normpath
 
 
-def copy_files(postprocessing_files, results_dir):
-    LOG.info(f"Copying {postprocessing_files} to {results_dir}")
-    pass
+def copy_files(files_to_copy, results_dir):
+    LOG.info(f"Copying {files_to_copy} to {results_dir}")
+    # Ensure the destination directory exists, create it if necessary
+    if not os.path.exists(results_dir):
+        os.makedirs(results_dir)
+
+    # Copy each file to the destination directory
+    for file_path in files_to_copy:
+        file_name = os.path.basename(file_path)
+        destination_path = os.path.join(results_dir, file_name)
+
+        try:
+            shutil.copy(file_path, destination_path)
+            LOG.debug(f"Successfully copied '{file_name}' to '{results_dir}'")
+        except Exception as e:
+            LOG.debug(f"Error copying '{file_name}': {e}")
 
 
 def prepare_and_train(
@@ -58,6 +73,7 @@ def prepare_and_train(
             model_config,
             model_name,
             trainer_name,
+            model_fold,
         )
 
         default_nnunet_adapter.evaluate_on_folder(
@@ -84,8 +100,10 @@ def prepare_and_train(
         LOG.info(f"Sending Email to {email_address}")
 
 
-def get_evaluation_file_paths(dataset_id, model_config, model_name, trainer_name):
-    # For whole dataset, if you do for only validation, then change paths
+def get_evaluation_file_paths(dataset_id, model_config, model_name, trainer_name, fold_no):
+    # Only for Validation, There will be warnings
+    # Val Pred Dir: data/nnUNet_results/Dataset722_TSPrimeCTVN/nnUNetTrainer__nnUNetPlans__3d_fullres/fold_0/validation
+    # Val GT Dir: data/nnUNet_preprocessed/Dataset722_TSPrimeCTVN/gt_segmentations
     results_dir = normpath(
         f"{os.environ[NNUNET_RESULTS_DATA_ENV_KEY]}"
         f"/Dataset{dataset_id}_{model_name}"
@@ -93,15 +111,15 @@ def get_evaluation_file_paths(dataset_id, model_config, model_name, trainer_name
     )
 
     gt_dir = normpath(
-        f"{os.environ[NNUNET_RAW_DATA_ENV_KEY]}"
+        f"{os.environ[NNUNET_PREPROCESSED_ENV_KEY]}"
         f"/Dataset{dataset_id}_{model_name}"
-        f"/labelsTr"
+        f"/gt_segmentations"
     )
-    preds_dir = normpath(
-        f"{os.environ[NNUNET_RAW_DATA_ENV_KEY]}"
-        f"/Dataset{dataset_id}_{model_name}"
-        f"/predsTr"
-    )
+
+    preds_dir = normpath(f"{results_dir}/fold_{0}/validation")
+    os.makedirs(preds_dir, exist_ok=True)
+
     dj_file = normpath(f"{results_dir}/{DATASET_JSON_FILENAME}")
     p_file = normpath(f"{results_dir}/{PLANS_JSON_FILENAME}")
+
     return dj_file, gt_dir, p_file, preds_dir, results_dir

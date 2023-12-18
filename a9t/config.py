@@ -22,6 +22,7 @@ TEMP_DIR_BASE = "temp"
 OUTPUT_DIR = "output"
 NNUNET_RAW_DATA_ENV_KEY = "nnUNet_raw"
 NNUNET_RESULTS_DATA_ENV_KEY = "nnUNet_results"
+NNUNET_PREPROCESSED_ENV_KEY = "nnUNet_preprocessed"
 DB_NAME = "db.json"
 DEFAULT_FOLD = 0
 CSV_FILE_PATH = "data/db/db.csv"

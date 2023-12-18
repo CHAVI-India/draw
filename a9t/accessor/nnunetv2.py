@@ -17,6 +17,7 @@ class NNUNetV2Adapter:
         self.raw_dir = raw_dir
         self.preprocessed_dir = preprocessed_dir
         self.preds_dir = preds_dir
+        self.num_plan_processes = 6
         self.set_env()
 
     def set_env(self):
@@ -39,6 +40,10 @@ class NNUNetV2Adapter:
             "-ref",
             gt_labels_folder,
             "--remove_postprocessed",
+            "-plans_json",
+            p_file,
+            "-dataset_json",
+            dj_file,
         ]
         self._run_subprocess(run_args)
 
@@ -65,6 +70,8 @@ class NNUNetV2Adapter:
             "--clean",
             "-c",
             config,
+            "-np",
+            self.num_plan_processes,
         ]
         if gpu_memory_gb is not None:
             run_args.extend(["-gpu_memory_target", gpu_memory_gb])
@@ -94,8 +101,8 @@ class NNUNetV2Adapter:
         device_id: int = 0,
     ):
         self.set_env()
+        os.environ["CUDA_VISIBLE_DEVICES"] = str(device_id)
         run_args = [
-            f"CUDA_VISIBLE_DEVICES={device_id}",
             "nnUNetv2_train",
             dataset_id,
             model_config,
@@ -143,7 +150,7 @@ class NNUNetV2Adapter:
         self._run_subprocess(run_args)
 
     @staticmethod
-    def _run_subprocess(run_args):
+    def _run_subprocess(run_args, env=None):
         """Synchronous call to nnunet"""
         run_args = [str(i) for i in run_args]
         subprocess.run(
@@ -151,7 +158,7 @@ class NNUNetV2Adapter:
             stdout=sys.stdout,
             stderr=sys.stderr,
             check=True,
-            # shell=True,
+            env=env,
         )
 
 
