@@ -15,7 +15,7 @@ log_config = {
     },
     "formatters": {
         "custom_format": {
-            "format": "%(asctime)s [%(levelname)s] %(funcName)s: %(message)s",
+            "format": "%(asctime)s [%(levelname)s] %(process)d, %(funcName)s: %(message)s",
         },
     },
     "root": {

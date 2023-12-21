@@ -112,10 +112,11 @@ class NNUNetV2Adapter:
         run_args = [str(i) for i in run_args]
         subprocess.run(
             run_args,
-            stdout=sys.stdout,
-            stderr=sys.stderr,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            stdin=subprocess.PIPE,
             check=True,
-            # shell=True,
+            shell=True,
         )
 
 

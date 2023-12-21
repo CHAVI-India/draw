@@ -11,7 +11,11 @@ _ENGINE = create_engine(
     DB_CONFIG["URL"],
     echo=False,
     isolation_level="READ UNCOMMITTED",
+    pool_size=10,
+    max_overflow=20,
 )
+
+_SESSION = sessionmaker(bind=_ENGINE)()
 
 
 class DBConnection:
@@ -21,7 +25,7 @@ class DBConnection:
 
     def __init__(self):
         self.engine = _ENGINE
-        self.session = sessionmaker(bind=self.engine)()
+        self.session = _SESSION
         self._table_name = DicomLog.__tablename__
         self.BATCH_SIZE = PRED_BATCH_SIZE
         self.create_table_if_not_exists()
@@ -43,11 +47,14 @@ class DBConnection:
             "ORDER BY created_on DESC "
             "LIMIT {}"
         ).format(self._table_name, dataset_name, status.value, self.BATCH_SIZE)
-        with self.engine.connect() as conn:
-            result_set = conn.execute(text(query))
-            result_objects = [self.convert_to_obj(row) for row in result_set]
-            LOG.info(f"Found {len(result_objects)}")
-            return result_set
+        try:
+            with self.engine.connect() as conn:
+                result_set = conn.execute(text(query))
+                result_objects = [self.convert_to_obj(row) for row in result_set]
+                LOG.info(f"Found {len(result_objects)}")
+                return result_objects
+        except Exception:
+            return []
 
     def insert(self, dcm_log: List[DicomLog]):
         self.session.add_all(dcm_log)
@@ -66,6 +73,19 @@ class DBConnection:
             conn.execute(text(q))
             conn.commit()
         LOG.info(f"Updated Status of {dcm_log.id} to {updated_status.value}")
+
+    def update_status_with_series_name(
+        self,
+        dcm_series_name: str,
+        updated_status: Status,
+    ):
+        q = "UPDATE dicomlog SET status='{}' WHERE dicomlog.id='{}'".format(
+            updated_status.value, dcm_series_name
+        )
+        with self.engine.connect() as conn:
+            conn.execute(text(q))
+            conn.commit()
+        LOG.info(f"Updated Status of Series {dcm_series_name} to {updated_status.value}")
 
     @staticmethod
     def convert_to_obj(row: Any) -> DicomLog:
