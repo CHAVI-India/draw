@@ -11,7 +11,7 @@ from a9t.utils.ioutils import remove_stuff
 
 GPU_RECHECK_TIME_SECONDS = 30
 REQUIRED_FREE_MEMORY_BYTES = 6 * 1024
-DEFAULT_PREDS_BASE_DIR = "../../output"
+DEFAULT_PREDS_BASE_DIR = "output"
 
 
 def get_gpu_memory():

@@ -47,7 +47,7 @@ class DBConnection:
             result_set = conn.execute(text(query))
             result_objects = [self.convert_to_obj(row) for row in result_set]
             LOG.info(f"Found {len(result_objects)}")
-            return result_set
+            return result_objects
 
     def insert(self, dcm_log: List[DicomLog]):
         self.session.add_all(dcm_log)
