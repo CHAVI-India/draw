@@ -17,6 +17,7 @@ class NNUNetV2Adapter:
         self.raw_dir = raw_dir
         self.preprocessed_dir = preprocessed_dir
         self.preds_dir = preds_dir
+        self.num_plan_processes = 6
         self.set_env()
 
     def set_env(self):
@@ -27,7 +28,26 @@ class NNUNetV2Adapter:
         os.environ["nnUNet_n_proc_DA"] = "4"
         os.environ["nnUNet_compile"] = "1"
 
-    def postprocess(self, input_folder, output_folder, pkl_file):
+    def determine_postprocessing(self, input_folder, gt_labels_folder, dj_file, p_file):
+        """
+        Determine PostProcessing. Creates PKL file in input_folder. Copy these
+        """
+        self.set_env()
+        run_args = [
+            "nnUNetv2_determine_postprocessing",
+            "-i",
+            input_folder,
+            "-ref",
+            gt_labels_folder,
+            "--remove_postprocessed",
+            "-plans_json",
+            p_file,
+            "-dataset_json",
+            dj_file,
+        ]
+        self._run_subprocess(run_args)
+
+    def apply_postprocessing(self, input_folder, output_folder, pkl_file):
         self.set_env()
         run_args = [
             "nnUNetv2_apply_postprocessing",
@@ -40,21 +60,28 @@ class NNUNetV2Adapter:
         ]
         self._run_subprocess(run_args)
 
-    def preprocess(self, dataset_id: str):
+    def plan(self, dataset_id: str, config: str, gpu_memory_gb: int = None):
         self.set_env()
         run_args = [
             "nnUNetv2_plan_and_preprocess",
             "-d",
             dataset_id,
             "--verify_dataset_integrity",
+            "--clean",
+            "-c",
+            config,
+            "-np",
+            self.num_plan_processes,
         ]
+        if gpu_memory_gb is not None:
+            run_args.extend(["-gpu_memory_target", gpu_memory_gb])
         self._run_subprocess(run_args)
 
-    def evaluate_on_folder(self, labels_dir, preds_dir, dj_file, p_file):
+    def evaluate_on_folder(self, gt_dir, preds_dir, dj_file, p_file):
         self.set_env()
         run_args = [
             "nnUNetv2_evaluate_folder",
-            labels_dir,
+            gt_dir,
             preds_dir,
             "-djfile",
             dj_file,
@@ -64,9 +91,25 @@ class NNUNetV2Adapter:
         ]
         self._run_subprocess(run_args)
 
-    def train(self, dataset_id: str, model_config: str, fold: int, resume: bool = True):
+    def train(
+        self,
+        dataset_id: str,
+        model_config: str,
+        fold: int,
+        trainer_name: str = "nnUNetTrainer",
+        resume: bool = True,
+        device_id: int = 0,
+    ):
         self.set_env()
-        run_args = ["nnUNetv2_train", dataset_id, model_config, fold]
+        os.environ["CUDA_VISIBLE_DEVICES"] = str(device_id)
+        run_args = [
+            "nnUNetv2_train",
+            dataset_id,
+            model_config,
+            fold,
+            "-tr",
+            trainer_name,
+        ]
 
         if resume:
             run_args.append("--c")
@@ -107,7 +150,7 @@ class NNUNetV2Adapter:
         self._run_subprocess(run_args)
 
     @staticmethod
-    def _run_subprocess(run_args):
+    def _run_subprocess(run_args, env=None):
         """Synchronous call to nnunet"""
         run_args = [str(i) for i in run_args]
         subprocess.run(
@@ -117,6 +160,7 @@ class NNUNetV2Adapter:
             stdin=subprocess.PIPE,
             check=True,
             shell=True,
+            env=env,
         )
 
 
