@@ -4,11 +4,12 @@ from datetime import datetime
 from functools import partial
 from multiprocessing.pool import Pool
 from typing import List
+from a9t.dao.db import DBConnection
 
 from a9t.utils import ioutils
 from a9t.utils.nifti2rt import convert_nifti_outputs_to_dicom
 from a9t.config import ALL_SEG_MAP, LOG, SAMPLE_NUMBER_ZFILL, NNUNET_RAW_DATA_ENV_KEY
-from a9t.dao.table import DicomLog
+from a9t.dao.table import DicomLog, Status
 from a9t.postprocess import postprocess_folder
 from a9t.evaluate.evaluate import generate_labels_on_data
 from a9t.preprocess.preprocess_data import convert_dicom_dir_to_nnunet_dataset
@@ -100,6 +101,12 @@ def predict_one_dataset(
             extension="nii.gz",
             only_original=only_original,
         )
+
+    conn = DBConnection()
+    for dcm_log in dcm_logs:
+        conn.update_status(dcm_log, Status.STARTED)
+    del conn
+        
     tr_images = os.path.join(dataset_dir, "imagesTr")
     model_pred_dir = os.path.join(
         preds_dir, parent_dataset_name, str(dataset_id), "modelpred"

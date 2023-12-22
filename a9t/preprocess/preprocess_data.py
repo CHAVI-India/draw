@@ -8,6 +8,7 @@ import nibabel as nib
 import numpy as np
 
 from a9t.accessor.nnunetv2 import NNUNetV2Adapter
+from a9t.dao.db import DBConnection
 from a9t.config import (
     TEMP_DIR_BASE,
     NNUNET_RAW_DATA_ENV_KEY,
@@ -153,7 +154,8 @@ def convert_dicom_to_nifti(
             only_original=only_original,
         )
         if not only_original:
-            combine_masks_to_multilabel_file(temp_dir, seg_save_path, seg_map)
+            combine_masks_to_multilabel_file(temp_dir, seg_save_path, seg_map)           
+         
 
 
 def combine_masks_to_multilabel_file(masks_dir, output_nifti_path, seg_map):

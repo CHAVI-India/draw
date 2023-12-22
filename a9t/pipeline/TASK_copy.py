@@ -16,7 +16,7 @@ COPY_WAIT_SECONDS = 5
 SERVER_OUTPUT_DIR = DICOM_WATCH_DIR
 DICOM_FILE_FILTER_REGEX = "**/*.dcm"
 WAIT_FOR_COPY_PAUSE_SECONDS = 1
-RAW_DIR = os.path.join("../../data", "raw")
+RAW_DIR = os.path.join("data", "raw")
 
 
 def copy_filtered_files(src_dir, dst_base_dir, filter_fxn):
@@ -66,10 +66,10 @@ def on_modified(event: FileSystemEvent):
     if event.is_directory:
         dir_path = event.src_path
         wait_copy_finish(dir_path)
-        model_name, raw_dir = determine_model(dir_path)
+        model_name, _ = determine_model(dir_path)
         if model_name is not None:
-            dir_path = copy_filtered_files(dir_path, raw_dir, filter_files)
-            LOG.info(f"Dir path changed to {dir_path}")
+            # dir_path = copy_filtered_files(dir_path, raw_dir, filter_files)
+            LOG.info(f"Dir path {dir_path}")
 
             conn = DBConnection()
             series_name = os.path.basename(

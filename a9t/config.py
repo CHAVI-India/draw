@@ -11,8 +11,8 @@ DB_CONFIG = {
     "TABLE_NAME": "dicom_log",
 }
 MODEL_YAML_ROOT_DIR = os.path.normpath("config_yaml")
-# DICOM_WATCH_DIR = os.path.normpath("D:\DICOM Database\DICOM IMPORT\dicom")
-DICOM_WATCH_DIR = os.path.normpath("data/watch")
+DICOM_WATCH_DIR = os.path.normpath("D:\DICOM Database\DICOM IMPORT\dicom")
+# DICOM_WATCH_DIR = os.path.normpath("data/watch")
 
 # Derived CONFIG
 ALL_SEG_MAP, PROTOCOL_TO_MODEL = get_model_maps(MODEL_YAML_ROOT_DIR)

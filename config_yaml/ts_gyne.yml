@@ -104,10 +104,10 @@ models:
   #     1: SpinalCord
   #   trainer_name: nnUNetTrainer
   #   postprocess: null
-  832:
-    name: TSGyneGtvn
-    config: 3d_lowres
-    map:
-      1: Gtvn
-    trainer_name: nnUNetTrainer
-    postprocess: null
+  # 832:
+  #   name: TSGyneGtvn
+  #   config: 3d_lowres
+  #   map:
+  #     1: Gtvn
+  #   trainer_name: nnUNetTrainer
+  #   postprocess: null

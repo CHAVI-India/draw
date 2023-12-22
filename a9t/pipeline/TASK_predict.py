@@ -9,9 +9,9 @@ from a9t.dao.table import Status, DicomLog
 from a9t.predict import folder_predict
 from a9t.utils.ioutils import remove_stuff
 
-GPU_RECHECK_TIME_SECONDS = 30
-REQUIRED_FREE_MEMORY_BYTES = 6 * 1024
-DEFAULT_PREDS_BASE_DIR = "../../output"
+GPU_RECHECK_TIME_SECONDS = 60
+REQUIRED_FREE_MEMORY_BYTES = int(6.5 * 1024)
+DEFAULT_PREDS_BASE_DIR = "output"
 
 
 def get_gpu_memory():
@@ -25,7 +25,7 @@ def get_gpu_memory():
 
 def copy_input_dcm_to_output(input_dir, output_dir):
     shutil.copytree(src=input_dir, dst=output_dir, dirs_exist_ok=True)
-    remove_stuff(input_dir)
+    # remove_stuff(input_dir)
 
 
 def send_to_external_server(pred_dcm_logs: List[DicomLog]):
