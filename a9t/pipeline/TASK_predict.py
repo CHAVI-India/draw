@@ -1,3 +1,4 @@
+from itertools import cycle
 import shutil
 import subprocess as sp
 import time
@@ -7,10 +8,9 @@ from a9t.config import MODEL_CONFIG, LOG
 from a9t.dao.db import DBConnection
 from a9t.dao.table import Status, DicomLog
 from a9t.predict import folder_predict
-from a9t.utils.ioutils import remove_stuff
 
-GPU_RECHECK_TIME_SECONDS = 60
-REQUIRED_FREE_MEMORY_BYTES = int(6.5 * 1024)
+GPU_RECHECK_TIME_SECONDS = 15
+REQUIRED_FREE_MEMORY_BYTES = int(5 * 1024)
 DEFAULT_PREDS_BASE_DIR = "output"
 
 
@@ -25,7 +25,6 @@ def get_gpu_memory():
 
 def copy_input_dcm_to_output(input_dir, output_dir):
     shutil.copytree(src=input_dir, dst=output_dir, dirs_exist_ok=True)
-    # remove_stuff(input_dir)
 
 
 def send_to_external_server(pred_dcm_logs: List[DicomLog]):
@@ -39,7 +38,7 @@ def send_to_external_server(pred_dcm_logs: List[DicomLog]):
 def run_prediction(seg_model_name):
     conn = DBConnection()
     all_dcm_files = conn.top(seg_model_name, Status.INIT)
-    if len(all_dcm_files) == conn.BATCH_SIZE:
+    if len(all_dcm_files) > 0:
         folder_predict(all_dcm_files, DEFAULT_PREDS_BASE_DIR, seg_model_name, True)
         pred_dcm_logs = conn.top(seg_model_name, Status.PREDICTED)
         for dcm in pred_dcm_logs:
@@ -50,16 +49,20 @@ def run_prediction(seg_model_name):
 
 
 def task_model_prediction():
-    while True:
-        gpu_memory_free = get_gpu_memory()
-        any_model_ran = False
+    # Python 3.8 minimum for this operator
+    model_name_generator = cycle(MODEL_CONFIG["KEYS"])
+    while model_name := next(model_name_generator):
+        try:
+            gpu_memory_free = get_gpu_memory()
+            any_model_ran = False
 
-        if gpu_memory_free >= REQUIRED_FREE_MEMORY_BYTES:
-            for model_name in MODEL_CONFIG["KEYS"]:
+            if gpu_memory_free >= REQUIRED_FREE_MEMORY_BYTES:
                 LOG.info(f"{gpu_memory_free} MB free GPU. Trying {model_name}")
                 any_model_ran = any_model_ran or run_prediction(model_name)
 
-        if not any_model_ran:
-            LOG.info(f"Free GPU: {gpu_memory_free} MB")
-            LOG.info(f"Any Model ran: {any_model_ran}")
-            time.sleep(GPU_RECHECK_TIME_SECONDS)
+            if not any_model_ran:
+                LOG.info(f"{model_name} ran: {any_model_ran}")
+                time.sleep(GPU_RECHECK_TIME_SECONDS)
+        except Exception:
+            LOG.error("Exception Ignored", exc_info=True)
+            continue
