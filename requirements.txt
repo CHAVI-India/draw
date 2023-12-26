@@ -11,5 +11,5 @@ sqlalchemy==2.0.21
 watchdog==3.0.0
 nnunetv2==2.1
 # Download as per GPU and latest CUDA
-torch>=2.0.1
+torch==2.0.1
 simpleitk==2.3.1

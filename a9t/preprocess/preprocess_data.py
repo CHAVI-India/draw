@@ -9,14 +9,16 @@ import numpy as np
 
 from a9t.accessor.nnunetv2 import NNUNetV2Adapter
 from a9t.dao.db import DBConnection
-from a9t.utils.dcm2nii import DicomConverters
 from a9t.config import (
     TEMP_DIR_BASE,
     NNUNET_RAW_DATA_ENV_KEY,
     DB_NAME,
     LOG,
     DEFAULT_MASK_NAME,
+    ALL_SEG_MAP,
+    SAMPLE_NUMBER_ZFILL,
 )
+from a9t.utils.dcm2nii import DicomConverters
 from a9t.utils.ioutils import (
     get_rt_file_path,
     read_json,
@@ -24,11 +26,8 @@ from a9t.utils.ioutils import (
     get_immediate_dicom_parent_dir,
     normpath,
     assert_env_key_set,
+    get_all_folders_from_raw_dir,
 )
-
-
-def nnunet_preprocess(dataset_id: str, nnunet_adapter: NNUNetV2Adapter):
-    nnunet_adapter.preprocess(dataset_id)
 
 
 def convert_dicom_dir_to_nnunet_dataset(
@@ -206,3 +205,42 @@ def make_dataset_json_file(dataset_dir, seg_map, modality):
 
     with open(normpath(f"{dataset_dir}/dataset.json"), "w", encoding="utf-8") as f:
         json.dump(json_data, f, ensure_ascii=False, indent=4)
+
+
+def run_pre_processing(
+    dataset_id: str,
+    model_name: str,
+    only_original: bool,
+    parent_root_dir: str,
+    sample_numbering_start: int,
+) -> None:
+    """
+    Run Preprocessing on a dataset
+    Args:
+        dataset_id: str, 3-digit id of dataset
+        model_name: str, Super model name eg: TSPrime, TSGyne etc.
+        only_original: bool, setting True will not process RT Struct file
+        parent_root_dir: str, Root dir with DICOM files. Individual files can be nested
+        sample_numbering_start: int, Continue numbering samples from given number
+
+    """
+    task_map = ALL_SEG_MAP[model_name]
+    all_dicom_dirs = get_all_folders_from_raw_dir(parent_root_dir)
+    LOG.info("Processing ID", dataset_id)
+    LOG.info(f"Found {len(all_dicom_dirs)} directories to work on...")
+    dataset_specific_map = task_map[int(dataset_id)]
+    model_name = dataset_specific_map["name"]
+    seg_map = dataset_specific_map["map"]
+    for idx, dicom_dir in enumerate(all_dicom_dirs, start=sample_numbering_start):
+        sample_number = str(idx).zfill(SAMPLE_NUMBER_ZFILL)
+
+        convert_dicom_dir_to_nnunet_dataset(
+            dicom_dir,
+            dataset_id,
+            model_name,
+            sample_number,
+            seg_map,
+            data_tag="seg",
+            extension="nii.gz",
+            only_original=only_original,
+        )
