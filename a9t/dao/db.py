@@ -13,6 +13,7 @@ _ENGINE = create_engine(
     isolation_level="READ UNCOMMITTED",
     pool_size=10,
     max_overflow=20,
+    pool_timeout=100,
 )
 
 _SESSION = sessionmaker(bind=_ENGINE)()
@@ -32,9 +33,10 @@ class DBConnection:
 
     def create_table_if_not_exists(self):
         """Creates Default table if not exists"""
-        if not self.engine.dialect.has_table(self.engine.connect(), self._table_name):
-            DicomLog.metadata.create_all(self.engine)
-            LOG.info(f"Table {self._table_name} created")
+        with self.engine.connect() as conn:
+            if not self.engine.dialect.has_table(conn, self._table_name):
+                DicomLog.metadata.create_all(self.engine)
+                LOG.info(f"Table {self._table_name} created")
 
     def top(self, dataset_name: str, status: Status) -> List[DicomLog]:
         if dataset_name not in MODEL_CONFIG["KEYS"]:

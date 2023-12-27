@@ -13,9 +13,8 @@ from a9t.dao.table import DicomLog, Status
 from a9t.utils.ioutils import get_immediate_dicom_parent_dir
 
 COPY_WAIT_SECONDS = 5
-SERVER_OUTPUT_DIR = DICOM_WATCH_DIR
 DICOM_FILE_FILTER_REGEX = "**/*.dcm"
-WAIT_FOR_COPY_PAUSE_SECONDS = 1
+WATCH_DELAY = 1
 RAW_DIR = os.path.join("data", "raw")
 
 
@@ -68,7 +67,6 @@ def on_modified(event: FileSystemEvent):
         wait_copy_finish(dir_path)
         model_name, _ = determine_model(dir_path)
         if model_name is not None:
-            # dir_path = copy_filtered_files(dir_path, raw_dir, filter_files)
             LOG.info(f"Dir path {dir_path}")
 
             conn = DBConnection()
@@ -107,7 +105,7 @@ def task_watch_dir():
     )
     my_event_handler.on_modified = on_modified
     my_event_handler.on_deleted = on_deleted
-    path = os.path.normpath(SERVER_OUTPUT_DIR)
+    path = os.path.normpath(DICOM_WATCH_DIR)
 
     LOG.info(f"Started watching {path} for modifications")
 
@@ -117,7 +115,7 @@ def task_watch_dir():
     my_observer.start()
     try:
         while True:
-            time.sleep(1)
+            time.sleep(WATCH_DELAY)
     except KeyboardInterrupt:
         my_observer.stop()
         my_observer.join()
