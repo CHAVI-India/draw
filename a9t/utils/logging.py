@@ -9,7 +9,7 @@ log_config = {
         },
         # 'file': {
         #     'class': 'logging.FileHandler',
-        #     'filename': 'logs/logfile.log', 
+        #     'filename': 'logs/logfile.log',
         #     'formatter': 'custom_format',
         # }, Multiprocessing and Single File not supported
     },

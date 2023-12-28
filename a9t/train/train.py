@@ -100,7 +100,9 @@ def prepare_and_train(
         LOG.info(f"Sending Email to {email_address}")
 
 
-def get_evaluation_file_paths(dataset_id, model_config, model_name, trainer_name, fold_no):
+def get_evaluation_file_paths(
+    dataset_id, model_config, model_name, trainer_name, fold_no
+):
     # Only for Validation, There will be warnings
     # Val Pred Dir: data/nnUNet_results/Dataset722_TSPrimeCTVN/nnUNetTrainer__nnUNetPlans__3d_fullres/fold_0/validation
     # Val GT Dir: data/nnUNet_preprocessed/Dataset722_TSPrimeCTVN/gt_segmentations

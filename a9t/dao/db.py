@@ -87,7 +87,9 @@ class DBConnection:
         with self.engine.connect() as conn:
             conn.execute(text(q))
             conn.commit()
-        LOG.info(f"Updated Status of Series {dcm_series_name} to {updated_status.value}")
+        LOG.info(
+            f"Updated Status of Series {dcm_series_name} to {updated_status.value}"
+        )
 
     @staticmethod
     def convert_to_obj(row: Any) -> DicomLog:

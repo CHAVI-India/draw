@@ -154,8 +154,7 @@ def convert_dicom_to_nifti(
             only_original=only_original,
         )
         if not only_original:
-            combine_masks_to_multilabel_file(temp_dir, seg_save_path, seg_map)           
-         
+            combine_masks_to_multilabel_file(temp_dir, seg_save_path, seg_map)
 
 
 def combine_masks_to_multilabel_file(masks_dir, output_nifti_path, seg_map):

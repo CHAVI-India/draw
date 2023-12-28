@@ -284,3 +284,5 @@ preds
 .venv39
 output/*
 .idea
+!output/.gitkeep
+!data/.gitkeep
