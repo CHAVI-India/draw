@@ -106,7 +106,7 @@ def predict_one_dataset(
     for dcm_log in dcm_logs:
         conn.update_status(dcm_log, Status.STARTED)
     del conn
-        
+
     tr_images = os.path.join(dataset_dir, "imagesTr")
     model_pred_dir = os.path.join(
         preds_dir, parent_dataset_name, str(dataset_id), "modelpred"

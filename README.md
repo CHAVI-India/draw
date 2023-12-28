@@ -1,13 +1,13 @@
 # A9T: Autosegment
 
-In the realm of Radiation Therapy Planning, 
-the significance of segmentation cannot be overstated. 
-Despite the existing availability of open-source models, 
-there is a notable absence of comprehensive solutions 
-that facilitate end-to-end segmentation for both organs at risk 
-and target volumes. To address this gap, we present the A9T framework, 
-leveraging the power of the nnUNet architecture. 
-This module is specifically tailored for seamless integration 
+In the realm of Radiation Therapy Planning,
+the significance of segmentation cannot be overstated.
+Despite the existing availability of open-source models,
+there is a notable absence of comprehensive solutions
+that facilitate end-to-end segmentation for both organs at risk
+and target volumes. To address this gap, we present the A9T framework,
+leveraging the power of the nnUNet architecture.
+This module is specifically tailored for seamless integration
 into radiotherapy planning workflows.
 
 ## Features

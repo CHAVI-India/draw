@@ -4,9 +4,7 @@ from a9t.config import ALL_SEG_MAP
 from a9t.impex.export import export_to_zip
 
 
-@click.command(
-    help="Convert model into ZIP archive"
-)
+@click.command(help="Convert model into ZIP archive")
 @click.option(
     "--dataset-id",
     type=int,
