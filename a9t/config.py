@@ -2,17 +2,18 @@ import dataclasses
 import os
 
 from a9t.utils.logging import get_log
-from a9t.utils.mapping import get_model_maps
+from a9t.utils.mapping import get_model_maps, get_env_map
+
+YML_ENV = get_env_map()
 
 # Path Configs, change as per Environment
 DB_CONFIG = {
-    "URL": "sqlite:///data/db_a9t.sqlite",
-    "DB_NAME": "a9t",
-    "TABLE_NAME": "dicom_log",
+    "URL": YML_ENV["DB_URL"],
+    "DB_NAME": YML_ENV["DB_NAME"],
+    "TABLE_NAME": YML_ENV["TABLE_NAME"],
 }
-MODEL_YAML_ROOT_DIR = os.path.normpath("config_yaml")
-# DICOM_WATCH_DIR = os.path.normpath("D:\DICOM Database\DICOM IMPORT\dicom")
-DICOM_WATCH_DIR = os.path.normpath("data/watch")
+MODEL_YAML_ROOT_DIR = os.path.normpath(YML_ENV["MODEL_DEF_ROOT"])
+DICOM_WATCH_DIR = os.path.normpath(YML_ENV["WATCH_DIR"])
 
 # Derived CONFIG
 ALL_SEG_MAP, PROTOCOL_TO_MODEL = get_model_maps(MODEL_YAML_ROOT_DIR)

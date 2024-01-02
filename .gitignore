@@ -287,3 +287,4 @@ output/*
 !output/.gitkeep
 !data/.gitkeep
 temp
+env.draw.yml

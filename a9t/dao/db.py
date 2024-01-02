@@ -1,11 +1,10 @@
 from typing import List, Any
 
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import Insert, create_engine
 from sqlalchemy.sql import text
 
-from .table import DicomLog, Status
-from ..config import DB_CONFIG, MODEL_CONFIG, PRED_BATCH_SIZE, LOG
+from a9t.dao.table import DicomLog, Status
+from a9t.config import DB_CONFIG, MODEL_CONFIG, PRED_BATCH_SIZE, LOG
 
 _ENGINE = create_engine(
     DB_CONFIG["URL"],
@@ -16,8 +15,6 @@ _ENGINE = create_engine(
     pool_timeout=100,
 )
 
-_SESSION = sessionmaker(bind=_ENGINE)()
-
 
 class DBConnection:
     """
@@ -26,7 +23,6 @@ class DBConnection:
 
     def __init__(self):
         self.engine = _ENGINE
-        self.session = _SESSION
         self._table_name = DicomLog.__tablename__
         self.BATCH_SIZE = PRED_BATCH_SIZE
         self.create_table_if_not_exists()
@@ -46,7 +42,7 @@ class DBConnection:
             "FROM {} "
             "WHERE model='{}' "
             "AND status='{}' "
-            "ORDER BY created_on DESC "
+            "ORDER BY created_on ASC "
             "LIMIT {}"
         ).format(self._table_name, dataset_name, status.value, self.BATCH_SIZE)
         try:
@@ -59,42 +55,38 @@ class DBConnection:
             return []
 
     def insert(self, dcm_log: List[DicomLog]):
-        self.session.add_all(dcm_log)
-        self.session.commit()
-        LOG.info(f"Added {len(dcm_log)} to DB")
+        try:
+            with self.engine.connect() as conn:
+                conn.execute(Insert(DicomLog), [d.get_attr_dict() for d in dcm_log])
+                conn.commit()
+                LOG.info(f"ENQUEUED {[d.input_path for d in dcm_log]}")
+
+        except Exception:
+            LOG.error(f"Exception for {dcm_log}", exc_info=True)
 
     def update_status(
         self,
         dcm_log: DicomLog,
         updated_status: Status,
     ):
+        if dcm_log.id is None:
+            LOG.error(f"NO ID to update")
+            return
+
         q = "UPDATE dicomlog SET status='{}' WHERE dicomlog.id='{}'".format(
-            updated_status.value, dcm_log.id
+            updated_status.value,
+            dcm_log.id,
         )
         with self.engine.connect() as conn:
             conn.execute(text(q))
             conn.commit()
         LOG.info(f"Updated Status of {dcm_log.id} to {updated_status.value}")
 
-    def update_status_with_series_name(
-        self,
-        dcm_series_name: str,
-        updated_status: Status,
-    ):
-        q = "UPDATE dicomlog SET status='{}' WHERE dicomlog.id='{}'".format(
-            updated_status.value, dcm_series_name
-        )
-        with self.engine.connect() as conn:
-            conn.execute(text(q))
-            conn.commit()
-        LOG.info(
-            f"Updated Status of Series {dcm_series_name} to {updated_status.value}"
-        )
-
     @staticmethod
     def convert_to_obj(row: Any) -> DicomLog:
         obj = DicomLog(
             id=row.id,
+            series_name=row.series_name,
             input_path=row.input_path,
             output_path=row.output_path,
             status=row.status,
@@ -103,14 +95,13 @@ class DBConnection:
         )
         return obj
 
-    def update(self, series_name: str, output_path: str):
-        """Updates Status and Output Path of given series name"""
+    def update_status(self, series_name: str, output_path: str, status: Status):
         q = "UPDATE dicomlog SET status='{}', output_path='{}' WHERE dicomlog.series_name='{}'".format(
-            Status.PREDICTED.value,
+            status,
             series_name,
             output_path,
         )
         with self.engine.connect() as conn:
             conn.execute(text(q))
             conn.commit()
-        LOG.info(f"Updated Status of {series_name} to {Status.PREDICTED.value}")
+        LOG.info(f"Updated Status of {series_name} to {status}")

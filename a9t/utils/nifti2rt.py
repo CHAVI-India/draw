@@ -16,6 +16,7 @@ from a9t.config import (
     RT_DEFAULT_FILE_NAME,
 )
 from a9t.dao.db import DBConnection
+from a9t.dao.table import Status
 from a9t.evaluate.evaluate import get_sample_summary
 
 
@@ -149,5 +150,5 @@ def convert_nifti_outputs_to_dicom(
             save_dir=f"{final_output_dir}/{exp_number}/{dcm_parent_folder}",
             label_to_name_map=seg_map,
         )
-        conn.update(save_dir, dcm_parent_folder)
+    conn.update_status(save_dir, dcm_parent_folder, status=Status.PREDICTED)
     return f"{final_output_dir}/{exp_number}"

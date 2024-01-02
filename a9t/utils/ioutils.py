@@ -80,3 +80,16 @@ def get_dicom_modality(dcm_file_name: str) -> str | None:
     if DicomKeyToTag.modality in f:
         return str(f[DicomKeyToTag.modality])
     return None
+
+
+def copy_filtered_files(src_dir, dst_base_dir, filter_fxn):
+    updated_dir_path = None
+    dcm_parent_dir = get_immediate_dicom_parent_dir(src_dir)
+    for p in glob.glob(DCM_REGEX, recursive=True, root_dir=src_dir):
+        if filter_fxn(os.path.join(src_dir, p)):
+            updated_dir_path = os.path.join(
+                dst_base_dir, os.path.basename(dcm_parent_dir)
+            )
+            os.makedirs(updated_dir_path, exist_ok=True)
+            shutil.copy(os.path.join(src_dir, p), os.path.join(dst_base_dir, p))
+    return updated_dir_path

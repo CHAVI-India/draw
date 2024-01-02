@@ -59,3 +59,11 @@ def get_model_maps(config_root_dir: str) -> tuple[dict, dict]:
             LOG.warning(f"Skipped {file_name} due to schema problems")
 
     return all_seg_map, protocol_to_model
+
+def get_env_map():
+    # Files named *.draw.yml
+    # Only one file per dir allowed
+    env_yml = get_dict_from_yaml("env.draw.yml")
+    return env_yml
+
+    

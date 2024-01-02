@@ -15,11 +15,11 @@ log_config = {
     },
     "formatters": {
         "custom_format": {
-            "format": "%(asctime)s [%(levelname)s] %(process)d, %(funcName)s: %(message)s",
+            "format": "%(asctime)s [%(levelname)s] %(process)d, %(funcName)s, %(lineno)d: %(message)s",
         },
     },
     "root": {
-        "level": "INFO",
+        "level": "DEBUG",
         "handlers": ["file"],
     },
 }
