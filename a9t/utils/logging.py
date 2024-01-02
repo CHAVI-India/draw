@@ -7,11 +7,11 @@ log_config = {
             "class": "logging.StreamHandler",
             "formatter": "custom_format",
         },
-        # 'file': {
-        #     'class': 'logging.FileHandler',
-        #     'filename': 'logs/logfile.log',
-        #     'formatter': 'custom_format',
-        # }, Multiprocessing and Single File not supported
+        "file": {
+            "class": "logging.FileHandler",
+            "filename": "logs/logfile.log",
+            "formatter": "custom_format",
+        },
     },
     "formatters": {
         "custom_format": {
@@ -20,7 +20,7 @@ log_config = {
     },
     "root": {
         "level": "INFO",
-        "handlers": ["console"],
+        "handlers": ["file"],
     },
 }
 
