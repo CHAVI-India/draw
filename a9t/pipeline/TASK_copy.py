@@ -92,11 +92,11 @@ def determine_model(dir_path):
         return None, None
 
 
-@debounce(5)
 def on_modified(event: FileSystemEvent):
-    path = Path(event.src_path)
+    src_path = Path(event.src_path)
+    LOG.debug(f"Triggered for {src_path}")
 
-    if path.resolve() != REDUNDANT_EVENT_PATH.resolve():
+    if src_path.resolve() != REDUNDANT_EVENT_PATH.resolve():
         LOG.info(f"Modification Detected at {event.src_path}")
 
         if event.is_directory:
@@ -128,7 +128,6 @@ def wait_copy_finish(filename):
     LOG.info(f"File {filename} copy complete detected")
 
 
-@debounce(5)
 def on_deleted(event):
     LOG.info(f"DELETED {event.src_path}!")
 

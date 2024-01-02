@@ -37,7 +37,7 @@ def folder_predict(dcm_logs: List[DicomLog], preds_dir, dataset_name, only_origi
             task_map.keys(),
         )
 
-    LOG.info("Prediction completed from model")
+    LOG.info(f"Prediction completed from model {dataset_name}")
 
     final_output_dir = get_final_output_dir(parent_dataset_name, preds_dir)
 

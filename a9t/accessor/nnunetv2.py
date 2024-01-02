@@ -24,8 +24,8 @@ class NNUNetV2Adapter:
         os.environ[self.NNUNET_RAW] = self.raw_dir
         os.environ[self.NNUNET_PREPROCESSED] = self.preprocessed_dir
         os.environ[self.NNUNET_RESULTS] = self.preds_dir
-        os.environ["nnUNet_def_n_proc"] = "4"
-        os.environ["nnUNet_n_proc_DA"] = "4"
+        os.environ["nnUNet_def_n_proc"] = "6"
+        os.environ["nnUNet_n_proc_DA"] = "6"
         os.environ["nnUNet_compile"] = "1"
 
     def determine_postprocessing(self, input_folder, gt_labels_folder, dj_file, p_file):
@@ -159,7 +159,6 @@ class NNUNetV2Adapter:
             stderr=subprocess.STDOUT,
             stdin=subprocess.PIPE,
             check=True,
-            shell=True,
             env=env,
         )
 
