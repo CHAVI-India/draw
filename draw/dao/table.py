@@ -2,6 +2,7 @@ import datetime
 
 from sqlalchemy import String, Column, Enum, DateTime, BigInteger
 from draw.dao.common import Base, Model, Status
+from sqlalchemy.sql import func
 
 
 class DicomLog(Base):
@@ -20,7 +21,7 @@ class DicomLog(Base):
     created_on = Column(
         "created_on",
         DateTime,
-        server_default=str(datetime.datetime.utcnow()),
+        server_default=func.now(),
     )
 
     def __repr__(self):
