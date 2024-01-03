@@ -11,7 +11,6 @@ from watchdog.observers import Observer
 from a9t.config import DCM_REGEX, DICOM_WATCH_DIR, PROTOCOL_TO_MODEL, LOG
 from a9t.dao.db import DBConnection
 from a9t.dao.table import DicomLog
-from a9t.utils.debounce import debounce
 from a9t.utils.ioutils import get_immediate_dicom_parent_dir
 
 COPY_WAIT_SECONDS = 5
