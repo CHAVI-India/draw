@@ -4,12 +4,13 @@ from datetime import datetime
 from functools import partial
 from multiprocessing.pool import Pool
 from typing import List
+from draw.dao.common import Status
 from draw.dao.db import DBConnection
 
 from draw.utils import ioutils
 from draw.utils.nifti2rt import convert_nifti_outputs_to_dicom
 from draw.config import ALL_SEG_MAP, LOG, SAMPLE_NUMBER_ZFILL, NNUNET_RAW_DATA_ENV_KEY
-from draw.dao.table import DicomLog, Status
+from draw.dao.table import DicomLog
 from draw.postprocess import postprocess_folder
 from draw.evaluate.evaluate import generate_labels_on_data
 from draw.preprocess.preprocess_data import convert_dicom_dir_to_nnunet_dataset

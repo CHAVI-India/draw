@@ -1,6 +1,6 @@
 from sqlalchemy import create_engine
 
-from draw.config import DB_CONFIG
+from draw.config import DB_CONFIG, MODEL_CONFIG
 from sqlalchemy.ext.declarative import declarative_base
 
 DB_ENGINE = create_engine(
@@ -13,3 +13,13 @@ DB_ENGINE = create_engine(
 )
 
 Base = declarative_base()
+
+
+class Status(enum.Enum):
+    INIT = "INIT"
+    STARTED = "STARTED"
+    PREDICTED = "PREDICTED"
+    SENT = "SENT"
+
+
+Model = enum.Enum("Model", tuple(MODEL_CONFIG["KEYS"]))

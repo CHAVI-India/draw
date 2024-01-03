@@ -16,7 +16,7 @@ from draw.config import (
     RT_DEFAULT_FILE_NAME,
 )
 from draw.dao.db import DBConnection
-from draw.dao.table import Status
+from draw.dao.common import Status
 from draw.evaluate.evaluate import get_sample_summary
 
 

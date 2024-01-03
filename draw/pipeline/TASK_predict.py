@@ -5,8 +5,9 @@ import time
 from typing import List
 
 from draw.config import MODEL_CONFIG, LOG
+from draw.dao.common import Status
 from draw.dao.db import DBConnection
-from draw.dao.table import Status, DicomLog
+from draw.dao.table import DicomLog
 from draw.predict import folder_predict
 
 GPU_RECHECK_TIME_SECONDS = 15

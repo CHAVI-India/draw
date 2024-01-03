@@ -1,29 +1,27 @@
 import datetime
-import enum
 
-from draw.config import MODEL_CONFIG
 from sqlalchemy import String, Column, Enum, DateTime, BigInteger
-from draw.dao.common import Base
-
-Model = enum.Enum("Model", tuple(MODEL_CONFIG["KEYS"]))
-
-
-class Status(enum.Enum):
-    INIT = "INIT"
-    STARTED = "STARTED"
-    PREDICTED = "PREDICTED"
-    SENT = "SENT"
+from draw.dao.common import Base, Model, Status
 
 
 class DicomLog(Base):
     __tablename__ = "dicomlog"
     id = Column(BigInteger, primary_key=True, autoincrement=True)
     series_name = Column("series_name", String(256))
-    input_path = Column("input_path", String(2000))
-    output_path = Column("output_path", String(2000))
-    status = Column("status", Enum(Status), default=Status.INIT, index=True)
+    input_path = Column("input_path", String(1024))
+    output_path = Column("output_path", String(1024))
+    status = Column(
+        "status",
+        Enum(Status),
+        server_default=str(Status.INIT.name),
+        index=True,
+    )
     model = Column("model", Enum(Model))
-    created_on = Column("created_on", DateTime, default=datetime.datetime.utcnow)
+    created_on = Column(
+        "created_on",
+        DateTime,
+        server_default=str(datetime.datetime.utcnow()),
+    )
 
     def __repr__(self):
         return (

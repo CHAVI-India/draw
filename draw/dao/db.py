@@ -1,10 +1,11 @@
 from typing import List, Any
 
-from sqlalchemy import Insert, create_engine
+from sqlalchemy import Insert
 from sqlalchemy.sql import text
 
-from draw.dao.table import DicomLog, Status
-from draw.config import DB_CONFIG, MODEL_CONFIG, PRED_BATCH_SIZE, LOG
+from draw.dao.table import DicomLog
+from draw.config import MODEL_CONFIG, PRED_BATCH_SIZE, LOG
+from draw.dao.common import DB_ENGINE, Status
 
 
 class DBConnection:
@@ -13,17 +14,9 @@ class DBConnection:
     """
 
     def __init__(self):
-        self.engine = _ENGINE
+        self.engine = DB_ENGINE
         self._table_name = DicomLog.__tablename__
         self.BATCH_SIZE = PRED_BATCH_SIZE
-        self.create_table_if_not_exists()
-
-    def create_table_if_not_exists(self):
-        """Creates Default table if not exists"""
-        with self.engine.connect() as conn:
-            if not self.engine.dialect.has_table(conn, self._table_name):
-                DicomLog.metadata.create_all(self.engine)
-                LOG.info(f"Table {self._table_name} created")
 
     def top(self, dataset_name: str, status: Status) -> List[DicomLog]:
         if dataset_name not in MODEL_CONFIG["KEYS"]:
