@@ -288,3 +288,4 @@ output/*
 !data/.gitkeep
 temp
 env.draw.yml
+alembic/versions
