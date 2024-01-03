@@ -1,3 +1,4 @@
+import enum
 from sqlalchemy import create_engine
 
 from draw.config import DB_CONFIG, MODEL_CONFIG
