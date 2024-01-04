@@ -2,7 +2,7 @@ import enum
 from sqlalchemy import create_engine
 
 from draw.config import DB_CONFIG, MODEL_CONFIG
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import DeclarativeBase
 
 DB_ENGINE = create_engine(
     DB_CONFIG["URL"],
@@ -13,7 +13,10 @@ DB_ENGINE = create_engine(
     pool_timeout=100,
 )
 
-Base = declarative_base()
+
+class Base(DeclarativeBase):
+    # Base class for All Tables
+    pass
 
 
 class Status(enum.Enum):

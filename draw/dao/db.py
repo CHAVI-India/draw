@@ -1,91 +1,89 @@
-from typing import List, Any
+from typing import List
 
-from sqlalchemy import Insert
-from sqlalchemy.sql import text
 
 from draw.dao.table import DicomLog
-from draw.config import MODEL_CONFIG, PRED_BATCH_SIZE, LOG
+from draw.config import PRED_BATCH_SIZE, LOG
 from draw.dao.common import DB_ENGINE, Status
+from sqlalchemy.orm import Session
+from sqlalchemy import select, update
 
 
 class DBConnection:
-    """
-    Connection to DB
-    """
-
-    def __init__(self):
-        self.engine = DB_ENGINE
-        self._table_name = DicomLog.__tablename__
-        self.BATCH_SIZE = PRED_BATCH_SIZE
-
-    def top(self, dataset_name: str, status: Status) -> List[DicomLog]:
-        if dataset_name not in MODEL_CONFIG["KEYS"]:
-            raise KeyError(f"{dataset_name} not in {MODEL_CONFIG['KEYS']}")
-        query = (
-            "SELECT * "
-            "FROM {} "
-            "WHERE model='{}' "
-            "AND status='{}' "
-            "ORDER BY created_on ASC "
-            "LIMIT {}"
-        ).format(self._table_name, dataset_name, status.value, self.BATCH_SIZE)
-        try:
-            with self.engine.connect() as conn:
-                result_set = conn.execute(text(query))
-                result_objects = [self.convert_to_obj(row) for row in result_set]
-                LOG.info(f"Found {len(result_objects)}")
-                return result_objects
-        except Exception:
-            return []
-
-    def insert(self, dcm_log: List[DicomLog]):
-        try:
-            with self.engine.connect() as conn:
-                conn.execute(Insert(DicomLog), [d.get_attr_dict() for d in dcm_log])
-                conn.commit()
-                LOG.info(f"ENQUEUED {[d.input_path for d in dcm_log]}")
-
-        except Exception:
-            LOG.error(f"Exception for {dcm_log}", exc_info=True)
-
-    def update_status(
-        self,
-        dcm_log: DicomLog,
-        updated_status: Status,
-    ):
-        if dcm_log.id is None:
-            LOG.error(f"NO ID to update")
-            return
-
-        q = "UPDATE dicomlog SET status='{}' WHERE dicomlog.id='{}'".format(
-            updated_status.value,
-            dcm_log.id,
-        )
-        with self.engine.connect() as conn:
-            conn.execute(text(q))
-            conn.commit()
-        LOG.info(f"Updated Status of {dcm_log.id} to {updated_status.value}")
+    """Querying the database and interacting with the records"""
 
     @staticmethod
-    def convert_to_obj(row: Any) -> DicomLog:
-        obj = DicomLog(
-            id=row.id,
-            series_name=row.series_name,
-            input_path=row.input_path,
-            output_path=row.output_path,
-            status=row.status,
-            model=row.model,
-            created_on=row.created_on,
-        )
-        return obj
+    def top(model: str, status: Status) -> List[DicomLog]:
+        """Gives List of Data to process from DB
 
-    def update_status(self, series_name: str, output_path: str, status: Status):
-        q = "UPDATE dicomlog SET status='{}', output_path='{}' WHERE dicomlog.series_name='{}'".format(
-            status,
-            series_name,
-            output_path,
-        )
-        with self.engine.connect() as conn:
-            conn.execute(text(q))
-            conn.commit()
-        LOG.info(f"Updated Status of {series_name} to {status}")
+        Args:
+            dataset_name (str): model name like TSPrime, TSGyne etc
+            status (Status): Status to filter the records
+
+        Returns:
+            List[DicomLog]: batch list of records that match the criteria
+        """
+        try:
+            with Session(DB_ENGINE) as sess:
+                stmt = (
+                    select(DicomLog)
+                    .where(DicomLog.model == model)
+                    .where(DicomLog.status == status)
+                    .order_by(DicomLog.created_on.desc())
+                    .limit(PRED_BATCH_SIZE)
+                )
+                return sess.scalars(stmt).all()
+        except:
+            LOG.error(f"Error while Fetching TOP {status} {model}", exc_info=True)
+            return []
+
+    @staticmethod
+    def insert(records: List[DicomLog]):
+        """Inserts list of records into the DB
+
+        Args:
+            records (List[DicomLog]): Records to insert in the DB
+        """
+        try:
+            with Session(DB_ENGINE) as sess:
+                sess.add_all(records)
+                sess.commit()
+        except:
+            LOG.error(f"Could not insert Records", exc_info=True)
+
+    @staticmethod
+    def update_status_by_id(dcm_log: DicomLog, updated_status: Status):
+        """Updates Status of Given Log
+
+        Args:
+            dcm_log (DicomLog): Log Record
+            status (Status): Status to Update
+        """
+        with Session(DB_ENGINE) as sess:
+            stmt = (
+                update(DicomLog)
+                .where(DicomLog.id == dcm_log.id)
+                .values(status=updated_status)
+            )
+            sess.execute(stmt)
+            sess.commit()
+
+    @staticmethod
+    def update_record_by_series_name(
+        series_name: str, output_path: str, status: Status
+    ):
+        """Updates Status by Series name
+
+        Args:
+            series_name (str): Series Name of the record to update
+            output_path (str): output path of the record
+            status (Status): updated status
+        """
+        with Session(DB_ENGINE) as sess:
+            stmt = (
+                update(DicomLog)
+                .where(DicomLog.series_name == series_name)
+                .values(status=status)
+                .values(output_path=output_path)
+            )
+            sess.execute(stmt)
+            sess.commit()

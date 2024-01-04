@@ -138,7 +138,6 @@ def convert_nifti_outputs_to_dicom(
     seg_map,
 ):
     dataset_tag = DEFAULT_DATASET_TAG
-    conn = DBConnection()
     for nifti_file_path in glob.glob(f"{model_pred_dir}/**.nii.gz"):
         sample_no = get_sample_number_from_nifti_path(nifti_file_path, dataset_tag)
         dcm_root_dir, dcm_parent_folder = get_dcm_root(
@@ -150,5 +149,7 @@ def convert_nifti_outputs_to_dicom(
             save_dir=f"{final_output_dir}/{exp_number}/{dcm_parent_folder}",
             label_to_name_map=seg_map,
         )
-    conn.update_status(save_dir, dcm_parent_folder, status=Status.PREDICTED)
+    DBConnection.update_record_by_series_name(
+        save_dir, dcm_parent_folder, status=Status.PREDICTED
+    )
     return f"{final_output_dir}/{exp_number}"

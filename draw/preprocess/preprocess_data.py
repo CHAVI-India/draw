@@ -7,8 +7,6 @@ from glob import glob
 import nibabel as nib
 import numpy as np
 
-from draw.accessor.nnunetv2 import NNUNetV2Adapter
-from draw.dao.db import DBConnection
 from draw.config import (
     TEMP_DIR_BASE,
     NNUNET_RAW_DATA_ENV_KEY,

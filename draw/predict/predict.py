@@ -88,7 +88,7 @@ def predict_one_dataset(
     remove_stuff(dataset_dir)
 
     dcm_input_paths = [dcm.input_path for dcm in dcm_logs]
-    LOG.info(f"Found {len(dcm_input_paths)} directories to work on...")
+    LOG.info(f"Found {len(dcm_input_paths)} DICOM directories")
 
     for idx, dicom_dir in enumerate(dcm_input_paths):
         sample_number = str(idx).zfill(SAMPLE_NUMBER_ZFILL)
@@ -104,10 +104,8 @@ def predict_one_dataset(
             only_original=only_original,
         )
 
-    conn = DBConnection()
     for dcm_log in dcm_logs:
-        conn.update_log_status(dcm_log, Status.STARTED)
-    del conn
+        DBConnection.update_status_by_id(dcm_log, Status.STARTED)
 
     tr_images = os.path.join(dataset_dir, "imagesTr")
     model_pred_dir = os.path.join(

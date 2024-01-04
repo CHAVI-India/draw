@@ -4,15 +4,14 @@ import subprocess as sp
 import time
 from typing import List
 
-from draw.config import MODEL_CONFIG, LOG
+from draw.config import MODEL_CONFIG, LOG, OUTPUT_DIR
 from draw.dao.common import Status
 from draw.dao.db import DBConnection
 from draw.dao.table import DicomLog
 from draw.predict import folder_predict
 
-GPU_RECHECK_TIME_SECONDS = 15
+GPU_RECHECK_TIME_SECONDS = 5
 REQUIRED_FREE_MEMORY_BYTES = int(5 * 1024)
-DEFAULT_PREDS_BASE_DIR = "output"
 
 
 def get_gpu_memory():
@@ -25,23 +24,24 @@ def get_gpu_memory():
 
 
 def copy_input_dcm_to_output(input_dir, output_dir):
+    LOG.debug(f"Copying {input_dir} -> {output_dir}")
     shutil.copytree(src=input_dir, dst=output_dir, dirs_exist_ok=True)
 
 
 def send_to_external_server(pred_dcm_logs: List[DicomLog]):
     # dcm_output_dirs = [dcm.output_path for dcm in pred_dcm_logs]
     # TODO: dcm_output_dirs got, check how to send to server
-    conn = DBConnection()
     for dcm in pred_dcm_logs:
-        conn.update_status(dcm, Status.SENT)
+        DBConnection.update_status_by_id(dcm, Status.SENT)
+    LOG.info(f"Sent {len(pred_dcm_logs)} to server")
 
 
 def run_prediction(seg_model_name):
-    conn = DBConnection()
-    all_dcm_files = conn.top(seg_model_name, Status.INIT)
+    all_dcm_files = DBConnection.top(seg_model_name, Status.INIT)
     if len(all_dcm_files) > 0:
-        folder_predict(all_dcm_files, DEFAULT_PREDS_BASE_DIR, seg_model_name, True)
-        pred_dcm_logs = conn.top(seg_model_name, Status.PREDICTED)
+        folder_predict(all_dcm_files, OUTPUT_DIR, seg_model_name, True)
+        pred_dcm_logs = DBConnection.top(seg_model_name, Status.PREDICTED)
+        LOG.info(f"Got {len(pred_dcm_logs)} from DB")
         for dcm in pred_dcm_logs:
             copy_input_dcm_to_output(dcm.input_path, dcm.output_path)
         send_to_external_server(pred_dcm_logs)

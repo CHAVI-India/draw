@@ -9,6 +9,7 @@ from watchdog.events import PatternMatchingEventHandler, FileSystemEvent
 from watchdog.observers import Observer
 
 from draw.config import DCM_REGEX, DICOM_WATCH_DIR, PROTOCOL_TO_MODEL, LOG
+from draw.dao.common import Status
 from draw.dao.db import DBConnection
 from draw.dao.table import DicomLog
 from draw.utils.ioutils import get_immediate_dicom_parent_dir
@@ -59,14 +60,14 @@ def modification_event_trigger(src_path: str):
     wait_copy_finish(dir_path)
     model_name = determine_model(dir_path)
     if model_name is not None:
-        conn = DBConnection()
         series_name = get_series_name(src_path)
         dcm = DicomLog(
             input_path=dir_path,
             model=model_name,
             series_name=series_name,
+            status=Status.INIT,
         )
-        conn.insert([dcm])
+        DBConnection.insert([dcm])
 
 
 def get_series_name(src_path):
