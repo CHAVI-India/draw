@@ -1,3 +1,4 @@
+from datetime import datetime
 from sqlalchemy import String, Column, Enum, DateTime, BigInteger
 from draw.dao.common import Base, Model, Status
 from sqlalchemy.sql import func
@@ -13,20 +14,24 @@ BigIntegerType = BigIntegerType.with_variant(sqlite.INTEGER(), "sqlite")
 class DicomLog(Base):
     __tablename__ = "dicomlog"
     id = Column(BigIntegerType, primary_key=True, autoincrement=True)
-    series_name = Column("series_name", String(256))
-    input_path = Column("input_path", String(1024))
-    output_path = Column("output_path", String(1024))
+    series_name = Column("series_name", String(256), nullable=False)
+    input_path = Column("input_path", String(1024), nullable=False)
+    output_path = Column("output_path", String(1024), nullable=True)
     status = Column(
         "status",
         Enum(Status),
-        server_default=str(Status.INIT.name),
+        default=Status.INIT.value,
+        server_default=str(Status.INIT.value),
         index=True,
+        nullable=False,
     )
-    model = Column("model", Enum(Model))
+    model = Column("model", Enum(Model), nullable=False)
     created_on = Column(
         "created_on",
         DateTime,
+        default=datetime.now,
         server_default=func.current_timestamp(),
+        nullable=False,
     )
 
     def __repr__(self):

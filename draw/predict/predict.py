@@ -61,6 +61,7 @@ def folder_predict(dcm_logs: List[DicomLog], preds_dir, dataset_name, only_origi
             exp_number,
             seg_map,
         )
+    LOG.info(F"Prediction Complete for {dataset_name}")
 
 
 def predict_one_dataset(
@@ -105,7 +106,7 @@ def predict_one_dataset(
 
     conn = DBConnection()
     for dcm_log in dcm_logs:
-        conn.update_status(dcm_log, Status.STARTED)
+        conn.update_log_status(dcm_log, Status.STARTED)
     del conn
 
     tr_images = os.path.join(dataset_dir, "imagesTr")

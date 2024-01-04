@@ -19,7 +19,7 @@ log_config = {
         },
     },
     "root": {
-        "level": "DEBUG",
+        "level": "INFO",
         "handlers": ["file"],
     },
 }
