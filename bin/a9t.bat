@@ -9,4 +9,4 @@ REM Activate the Conda environment
 call %CONDA_PATH%\Scripts\activate %ENV_NAME%
 
 REM Run the Python script
-python D:\totalsegmentator\a9t_v2\kgp.segmentation\run.py
+python D:\totalsegmentator\a9t_v2\kgp.segmentation\main.py start-pipeline
