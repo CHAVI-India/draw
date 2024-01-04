@@ -1,6 +1,6 @@
 import click
 
-from a9t.cli import (
+from draw.cli import (
     cli_prepare_and_train,
     cli_predict,
     cli_preprocess,
@@ -10,7 +10,7 @@ from a9t.cli import (
 
 
 @click.group(
-    name="a9t",
+    name="draw",
     help="AutoSegmentation Pipeline based on NNUNet",
 )
 def cli():

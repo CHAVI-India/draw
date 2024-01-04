@@ -1,10 +1,10 @@
-# A9T Single Machine Workflow
+# DRAW Single Machine Workflow
 
-A9T can be used a Desktop App as well!
+DRAW can be used a Desktop App as well!
 
 ## Architecture
 
-![a9t-desktop-app-architecture](https://ik.imagekit.io/oj8f972s8/a9t/a9t-desktop-app-arch.drawio.png)
+![draw-desktop-app-architecture](https://ik.imagekit.io/oj8f972s8/a9t/a9t-desktop-app-arch.drawio.png)
 
 1. **DICOM Files Placement:**
    - Place DICOM files in the designated input folder. This can be automatically done from Scanning Service or manually placed.
@@ -22,7 +22,7 @@ A9T can be used a Desktop App as well!
 
 ## How to run
 
-Change the value of `DICOM_WATCH_DIR` in `a9t/config.py` and run by any of the following in the command line:
+Change the value of `DICOM_WATCH_DIR` in `draw/config.py` and run by any of the following in the command line:
 
 ```bash
 python main.py start-pipeline #Preferred way
