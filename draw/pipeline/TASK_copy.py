@@ -1,4 +1,3 @@
-from functools import lru_cache
 import glob
 import os.path
 from pathlib import Path
@@ -8,15 +7,20 @@ from pydicom import dcmread
 from watchdog.events import PatternMatchingEventHandler, FileSystemEvent
 from watchdog.observers import Observer
 
-from draw.config import DCM_REGEX, DICOM_WATCH_DIR, PROTOCOL_TO_MODEL, LOG
+from draw.config import (
+    DCM_REGEX,
+    DICOM_WATCH_DIR,
+    PROTOCOL_TO_MODEL,
+    LOG,
+    DicomKeyToTag,
+)
 from draw.dao.common import Status
 from draw.dao.db import DBConnection
 from draw.dao.table import DicomLog
-from draw.utils.ioutils import get_immediate_dicom_parent_dir
+from draw.utils.ioutils import get_dicom_attribute_from_dir
 
-COPY_WAIT_SECONDS = 5
+COPY_WAIT_SECONDS = 20
 WATCH_DELAY = 1
-RAW_DIR = os.path.join("data", "raw")
 # Watchdog generates duplicate events. To fix that filter ROOT dir events
 REDUNDANT_EVENT_PATH = Path(DICOM_WATCH_DIR)
 
@@ -48,32 +52,45 @@ def determine_model(dir_path):
 def on_modified(event: FileSystemEvent):
     src_path = Path(event.src_path)
     LOG.debug(f"Triggered for {src_path}")
-    if event.is_directory and src_path.resolve() != REDUNDANT_EVENT_PATH.resolve():
+    if (
+        event.is_directory
+        and src_path.resolve() != REDUNDANT_EVENT_PATH.resolve()
+        and not event.is_synthetic
+    ):
         modification_event_trigger(event.src_path)
 
 
-@lru_cache(maxsize=64)
 def modification_event_trigger(src_path: str):
     LOG.info(f"MODIFIED {src_path}")
 
-    dir_path = src_path
-    if not os.path.exists(dir_path):
-        return
-    wait_copy_finish(dir_path)
-    model_name = determine_model(dir_path)
-    if model_name is not None:
-        series_name = get_series_name(src_path)
-        dcm = DicomLog(
-            input_path=dir_path,
-            model=model_name,
-            series_name=series_name,
-            status=Status.INIT,
-        )
-        DBConnection.insert([dcm])
+    try:
+        dir_path = src_path
+        series_name = get_uniq_id_for_sample(src_path)
+
+        if (
+            series_name is None
+            or not os.path.exists(dir_path)
+            or DBConnection.exists(series_name)
+        ):
+            return
+
+        wait_copy_finish(dir_path)
+        model_name = determine_model(dir_path)
+
+        if model_name is not None:
+            dcm = DicomLog(
+                input_path=dir_path,
+                model=model_name,
+                series_name=series_name,
+                status=Status.INIT,
+            )
+            DBConnection.insert([dcm])
+    except:
+        LOG.error(f"Error while processing modification {src_path}", exc_info=True)
 
 
-def get_series_name(src_path):
-    return os.path.basename(get_immediate_dicom_parent_dir(src_path))
+def get_uniq_id_for_sample(src_path):
+    return get_dicom_attribute_from_dir(src_path, DicomKeyToTag.series_instance_uid)
 
 
 def wait_copy_finish(filename):
@@ -88,7 +105,6 @@ def on_deleted(event):
     delete_event_trigger(event.src_path)
 
 
-@lru_cache(maxsize=64)
 def delete_event_trigger(src_path):
     LOG.info(f"DELETED {src_path}")
 

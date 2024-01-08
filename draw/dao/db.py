@@ -5,11 +5,19 @@ from draw.dao.table import DicomLog
 from draw.config import PRED_BATCH_SIZE, LOG
 from draw.dao.common import DB_ENGINE, Status
 from sqlalchemy.orm import Session
-from sqlalchemy import select, update
+from sqlalchemy import exists, select, update
 
 
 class DBConnection:
     """Querying the database and interacting with the records"""
+
+    @staticmethod
+    def exists(series_name: str) -> bool:
+        with Session(DB_ENGINE) as sess:
+            exists_query = sess.query(
+                exists().where(DicomLog.series_name == series_name)
+            )
+            return sess.execute(exists_query).scalar()
 
     @staticmethod
     def top(model: str, status: Status) -> List[DicomLog]:
@@ -28,7 +36,7 @@ class DBConnection:
                     select(DicomLog)
                     .where(DicomLog.model == model)
                     .where(DicomLog.status == status)
-                    .order_by(DicomLog.created_on.desc())
+                    .order_by(DicomLog.created_on)
                     .limit(PRED_BATCH_SIZE)
                 )
                 return sess.scalars(stmt).all()
