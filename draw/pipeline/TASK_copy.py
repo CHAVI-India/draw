@@ -40,7 +40,7 @@ def determine_model(dir_path):
                 break
 
     except Exception:
-        LOG.error(f"Exception while processing: {dir_path}", exc_info=True)
+        LOG.error(f"Ignored Exception while processing: {dir_path}", exc_info=True)
     finally:
         return model_name
 
