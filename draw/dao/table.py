@@ -14,7 +14,7 @@ BigIntegerType = BigIntegerType.with_variant(sqlite.INTEGER(), "sqlite")
 class DicomLog(Base):
     __tablename__ = "dicomlog"
     id = Column(BigIntegerType, primary_key=True, autoincrement=True)
-    series_name = Column("series_name", String(256), nullable=False)
+    series_name = Column("series_name", String(256), nullable=False, unique=True)
     input_path = Column("input_path", String(1024), nullable=False)
     output_path = Column("output_path", String(1024), nullable=True)
     status = Column(

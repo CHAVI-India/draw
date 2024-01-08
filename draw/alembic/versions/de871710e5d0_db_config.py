@@ -1,8 +1,8 @@
-"""sql
+"""db_config
 
-Revision ID: cc92f118618e
+Revision ID: de871710e5d0
 Revises:
-Create Date: 2024-01-03 22:19:15.867732
+Create Date: 2024-01-08 21:13:12.624807
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import mysql
 
 # revision identifiers, used by Alembic.
-revision: str = "cc92f118618e"
+revision: str = "de871710e5d0"
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -40,7 +40,7 @@ def upgrade() -> None:
             server_default="INIT",
             nullable=False,
         ),
-        sa.Column("model", sa.Enum("TSPrime", "TSGyne", name="model"), nullable=False),
+        sa.Column("model", sa.Enum("TSGyne", "TSPrime", name="model"), nullable=False),
         sa.Column(
             "created_on",
             sa.DateTime(),
@@ -48,6 +48,7 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("series_name"),
     )
     op.create_index(op.f("ix_dicomlog_status"), "dicomlog", ["status"], unique=False)
     # ### end Alembic commands ###

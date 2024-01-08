@@ -1,3 +1,4 @@
+import multiprocessing
 import click
 
 from draw.cli import (
@@ -25,4 +26,5 @@ cli.add_command(cli_export, "zip-model")
 
 
 if __name__ == "__main__":
+    multiprocessing.freeze_support()
     cli()

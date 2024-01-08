@@ -26,9 +26,9 @@ NNUNET_RESULTS_DATA_ENV_KEY = "nnUNet_results"
 NNUNET_PREPROCESSED_ENV_KEY = "nnUNet_preprocessed"
 RT_DEFAULT_FILE_NAME = "Pred_RT.dcm"
 RTSTRUCT_STRING = "RTSTRUCT"
-DB_NAME="db.json"
-DEFAULT_FOLD="0"
-CSV_FILE_PATH="db.json"
+DB_NAME = "db.json"
+DEFAULT_FOLD = "0"
+CSV_FILE_PATH = "db.json"
 DCM_REGEX = "**/**.dcm"
 LOG = get_log()
 DEFAULT_MASK_NAME = "draw_default_mask.nii.gz"
@@ -39,6 +39,7 @@ SAMPLE_NUMBER_ZFILL = 3
 @dataclasses.dataclass
 class DicomKeyToTag:
     modality: tuple = (0x0008, 0x0060)
+    series_instance_uid: tuple = (0x0020, 0x000E)
 
 
 DEFAULT_DATASET_TAG = "seg"
