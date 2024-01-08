@@ -57,9 +57,14 @@ def remove_stuff(path):
 
 
 def get_immediate_dicom_parent_dir(dicom_dir):
+    one_dcm_path = get_one_dcm_path(dicom_dir)
+    return str(one_dcm_path.parent)
+
+
+def get_one_dcm_path(dicom_dir):
     one_dcm_path = glob(normpath(f"{dicom_dir}/{DCM_REGEX}"), recursive=True)[0]
     one_dcm_path = Path(one_dcm_path)
-    return str(one_dcm_path.parent)
+    return one_dcm_path
 
 
 def get_all_dicom_dirs(root_dir):
@@ -74,14 +79,6 @@ def assert_env_key_set(key):
     return base_dir
 
 
-# TODO: Get modality from DICOM images
-def get_dicom_modality(dcm_file_name: str) -> str | None:
-    f = dcmread(dcm_file_name)
-    if DicomKeyToTag.modality in f:
-        return str(f[DicomKeyToTag.modality])
-    return None
-
-
 def copy_filtered_files(src_dir, dst_base_dir, filter_fxn):
     updated_dir_path = None
     dcm_parent_dir = get_immediate_dicom_parent_dir(src_dir)
@@ -93,3 +90,10 @@ def copy_filtered_files(src_dir, dst_base_dir, filter_fxn):
             os.makedirs(updated_dir_path, exist_ok=True)
             shutil.copy(os.path.join(src_dir, p), os.path.join(dst_base_dir, p))
     return updated_dir_path
+
+
+def get_dicom_attribute_from_dir(dir_path: str, attrib_key: tuple) -> str | None:
+    f = dcmread(str(get_one_dcm_path(dir_path)))
+    if attrib_key in f:
+        return str(f[attrib_key].value)
+    return None
