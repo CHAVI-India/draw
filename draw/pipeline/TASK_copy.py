@@ -19,9 +19,8 @@ from draw.dao.db import DBConnection
 from draw.dao.table import DicomLog
 from draw.utils.ioutils import get_dicom_attribute_from_dir
 
-COPY_WAIT_SECONDS = 5
+COPY_WAIT_SECONDS = 20
 WATCH_DELAY = 1
-RAW_DIR = os.path.join("data", "raw")
 # Watchdog generates duplicate events. To fix that filter ROOT dir events
 REDUNDANT_EVENT_PATH = Path(DICOM_WATCH_DIR)
 
