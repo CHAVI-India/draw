@@ -24,6 +24,7 @@ def get_gpu_memory():
 
 
 def copy_input_dcm_to_output(input_dir, output_dir):
+    # This triggers WatchDog maybe?
     LOG.debug(f"Copying {input_dir} -> {output_dir}")
     shutil.copytree(src=input_dir, dst=output_dir, dirs_exist_ok=True)
 
@@ -42,8 +43,8 @@ def run_prediction(seg_model_name):
         folder_predict(all_dcm_files, OUTPUT_DIR, seg_model_name, True)
         pred_dcm_logs = DBConnection.top(seg_model_name, Status.PREDICTED)
         LOG.info(f"Got {len(pred_dcm_logs)} from DB")
-        for dcm in pred_dcm_logs:
-            copy_input_dcm_to_output(dcm.input_path, dcm.output_path)
+        # for dcm in pred_dcm_logs:
+        #     copy_input_dcm_to_output(dcm.input_path, dcm.output_path)
         send_to_external_server(pred_dcm_logs)
         return True
     return False

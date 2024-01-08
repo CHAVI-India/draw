@@ -20,6 +20,8 @@ POOL_WORKERS = 2
 
 
 def folder_predict(dcm_logs: List[DicomLog], preds_dir, dataset_name, only_original):
+    for dcm_log in dcm_logs:
+        DBConnection.update_status_by_id(dcm_log, Status.STARTED)
     task_map = ALL_SEG_MAP[dataset_name]
     exp_number = datetime.now().strftime("%Y-%m-%d.%H-%M")
     parent_dataset_name = dataset_name
@@ -103,9 +105,6 @@ def predict_one_dataset(
             extension="nii.gz",
             only_original=only_original,
         )
-
-    for dcm_log in dcm_logs:
-        DBConnection.update_status_by_id(dcm_log, Status.STARTED)
 
     tr_images = os.path.join(dataset_dir, "imagesTr")
     model_pred_dir = os.path.join(

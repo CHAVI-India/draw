@@ -52,11 +52,13 @@ def on_modified(event: FileSystemEvent):
         modification_event_trigger(event.src_path)
 
 
-@lru_cache(maxsize=256)
+@lru_cache(maxsize=64)
 def modification_event_trigger(src_path: str):
     LOG.info(f"MODIFIED {src_path}")
 
     dir_path = src_path
+    if not os.path.exists(dir_path):
+        return
     wait_copy_finish(dir_path)
     model_name = determine_model(dir_path)
     if model_name is not None:
@@ -86,7 +88,7 @@ def on_deleted(event):
     delete_event_trigger(event.src_path)
 
 
-@lru_cache(maxsize=256)
+@lru_cache(maxsize=64)
 def delete_event_trigger(src_path):
     LOG.info(f"DELETED {src_path}")
 
