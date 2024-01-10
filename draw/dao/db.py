@@ -36,7 +36,7 @@ class DBConnection:
                     select(DicomLog)
                     .where(DicomLog.model == model)
                     .where(DicomLog.status == status)
-                    .order_by(DicomLog.created_on.desc())
+                    .order_by(DicomLog.created_on)
                     .limit(PRED_BATCH_SIZE)
                 )
                 return sess.scalars(stmt).all()

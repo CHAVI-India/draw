@@ -14,10 +14,12 @@ from draw.config import (
     DEFAULT_DATASET_TAG,
     SAMPLE_SEP_DELIM,
     RT_DEFAULT_FILE_NAME,
+    DicomKeyToTag,
 )
 from draw.dao.db import DBConnection
 from draw.dao.common import Status
 from draw.evaluate.evaluate import get_sample_summary
+from draw.utils.ioutils import get_dicom_attribute_from_dir
 
 
 def convert_multilabel_nifti_to_rtstruct(
@@ -73,7 +75,9 @@ def get_dcm_root(dataset_id: int, sample_no: str, dataset_dir):
     op = df.loc[(df["DatasetID"] == dataset_id) & (df["SampleNumber"] == sample_no)]
     if not op.empty:
         dcm_root_dir = op["DICOMRootDir"].iloc[0]
-        return dcm_root_dir, os.path.split(dcm_root_dir)[-1]
+        return dcm_root_dir, get_dicom_attribute_from_dir(
+            dcm_root_dir, DicomKeyToTag.series_instance_uid
+        )
     LOG.warning(f"No DICOM dir:{dataset_id}, Sample {sample_no} not found")
     return "", ""
 
@@ -89,6 +93,7 @@ def modify_splits(splits: dict):
 
 
 def add_to_output_csv(dataset_id: int, summaries: list[dict], splits, save_path):
+    # Deprecated
     # Path and dir name
     df = pd.read_csv(
         CSV_FILE_PATH,
@@ -138,11 +143,10 @@ def convert_nifti_outputs_to_dicom(
     seg_map,
 ):
     dataset_tag = DEFAULT_DATASET_TAG
-    series_name, output_folder = None, None
 
     for nifti_file_path in glob.glob(f"{model_pred_dir}/**.nii.gz"):
         sample_no = get_sample_number_from_nifti_path(nifti_file_path, dataset_tag)
-        dcm_root_dir, dcm_parent_folder = get_dcm_root(
+        dcm_root_dir, series_name = get_dcm_root(
             dataset_id,
             sample_no,
             dataset_dir,
@@ -150,14 +154,14 @@ def convert_nifti_outputs_to_dicom(
         save_dir = convert_multilabel_nifti_to_rtstruct(
             nifti_file_path=nifti_file_path,
             dicom_dir=dcm_root_dir,
-            save_dir=f"{final_output_dir}/{exp_number}/{dcm_parent_folder}",
+            save_dir=f"{final_output_dir}/{exp_number}/{series_name}",
             label_to_name_map=seg_map,
         )
 
-    LOG.info(f"Updating {dcm_parent_folder} to {save_dir}, {Status.PREDICTED}")
+    LOG.info(f"Updating {series_name} to {save_dir}, {Status.PREDICTED}")
 
     DBConnection.update_record_by_series_name(
-        series_name=dcm_parent_folder,
+        series_name=series_name,
         output_path=save_dir,
         status=Status.PREDICTED,
     )
