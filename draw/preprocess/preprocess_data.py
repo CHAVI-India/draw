@@ -223,7 +223,7 @@ def run_pre_processing(
     """
     task_map = ALL_SEG_MAP[model_name]
     all_dicom_dirs = get_all_folders_from_raw_dir(parent_root_dir)
-    LOG.info("Processing ID", dataset_id)
+    LOG.info(f"Processing ID {dataset_id}")
     LOG.info(f"Found {len(all_dicom_dirs)} directories to work on...")
     dataset_specific_map = task_map[int(dataset_id)]
     model_name = dataset_specific_map["name"]

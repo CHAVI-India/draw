@@ -123,7 +123,7 @@ class DicomConverters:
                     mask.CopyInformation(dicom_image)
 
                     mask_filename = f'{rtstruct["name"]}'
-                    LOG.info("Saving Mask at: {mask_filename}")
+                    LOG.info(f"Saving Mask at: {mask_filename}")
 
                     # Trailing Slash present in output dir
                     nii_output_adapter.write(mask, f"{output_dir}{mask_filename}", gzip)
