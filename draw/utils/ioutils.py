@@ -4,6 +4,7 @@ import os.path
 import shutil
 from glob import glob
 from pathlib import Path
+import subprocess as sp
 
 from pydicom import dcmread
 
@@ -97,3 +98,18 @@ def get_dicom_attribute_from_dir(dir_path: str, attrib_key: tuple) -> str | None
     if attrib_key in f:
         return str(f[attrib_key].value)
     return None
+
+
+def copy_input_dcm_to_output(input_dir, output_dir):
+    # This triggers WatchDog maybe?
+    LOG.debug(f"Copying {input_dir} -> {output_dir}")
+    shutil.copytree(src=input_dir, dst=output_dir, dirs_exist_ok=True)
+
+
+def get_gpu_memory():
+    command = "nvidia-smi --query-gpu=memory.free --format=csv"
+    memory_free_info = (
+        sp.check_output(command.split()).decode("ascii").split("\n")[:-1][1:]
+    )
+    memory_free_values = [int(x.split()[0]) for i, x in enumerate(memory_free_info)]
+    return int(memory_free_values[0])

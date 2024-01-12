@@ -1,33 +1,17 @@
 from itertools import cycle
-import shutil
-import subprocess as sp
 import time
 from typing import List
 
 from draw.config import MODEL_CONFIG, LOG, OUTPUT_DIR
+from draw.config import GPU_RECHECK_TIME_SECONDS
+from draw.config import REQUIRED_FREE_MEMORY_BYTES
 from draw.dao.common import Status
 from draw.dao.db import DBConnection
 from draw.dao.table import DicomLog
 from draw.predict import folder_predict
 from retry.api import retry_call
 
-GPU_RECHECK_TIME_SECONDS = 5
-REQUIRED_FREE_MEMORY_BYTES = int(5 * 1024)
-
-
-def get_gpu_memory():
-    command = "nvidia-smi --query-gpu=memory.free --format=csv"
-    memory_free_info = (
-        sp.check_output(command.split()).decode("ascii").split("\n")[:-1][1:]
-    )
-    memory_free_values = [int(x.split()[0]) for i, x in enumerate(memory_free_info)]
-    return int(memory_free_values[0])
-
-
-def copy_input_dcm_to_output(input_dir, output_dir):
-    # This triggers WatchDog maybe?
-    LOG.debug(f"Copying {input_dir} -> {output_dir}")
-    shutil.copytree(src=input_dir, dst=output_dir, dirs_exist_ok=True)
+from draw.utils.ioutils import get_gpu_memory
 
 
 def send_to_external_server(pred_dcm_logs: List[DicomLog]):
@@ -60,6 +44,7 @@ def run_prediction_with_retry(seg_model_name, all_dcm_files):
         ),
         tries=2,
         logger=LOG,
+        delay=5,
     )
 
 

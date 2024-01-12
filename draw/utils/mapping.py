@@ -7,6 +7,8 @@ from schema import Schema, And, SchemaError, Or
 from draw.utils.logging import get_log
 
 LOG = get_log()
+ENV_FILE_NAME = "env.draw.yml"
+
 
 model_schema = Schema(
     {
@@ -27,6 +29,16 @@ CONF_SCHEMA = Schema(
     }
 )
 
+ENV_SCHEMA = Schema(
+    {
+        "DB_URL": str,
+        "DB_NAME": str,
+        "TABLE_NAME": str,
+        "WATCH_DIR": str,
+        "MODEL_DEF_ROOT": str,
+    }
+)
+
 
 def get_dict_from_yaml(yaml_path: str) -> dict:
     with open(yaml_path, "r") as stream:
@@ -41,7 +53,7 @@ def check_yaml_dict_schema(template_schema, read_schema):
         template_schema.validate(read_schema)
         return read_schema
     except SchemaError:
-        LOG.error(f"Error while reading schema %s", exc_info=True)
+        LOG.error(f"Error while reading schema", exc_info=True)
         return None
 
 
@@ -50,7 +62,6 @@ def get_model_maps(config_root_dir: str) -> tuple[dict, dict]:
     for file_name in glob.glob(
         os.path.join(config_root_dir, "**", "*.yml"), recursive=True
     ):
-        LOG.info(f"Processing {file_name}")
         schema = check_yaml_dict_schema(CONF_SCHEMA, get_dict_from_yaml(file_name))
         if schema is not None:
             all_seg_map[schema["name"]] = schema["models"]
@@ -62,7 +73,4 @@ def get_model_maps(config_root_dir: str) -> tuple[dict, dict]:
 
 
 def get_env_map():
-    # Files named *.draw.yml
-    # Only one file per dir allowed
-    env_yml = get_dict_from_yaml("env.draw.yml")
-    return env_yml
+    return check_yaml_dict_schema(ENV_SCHEMA, get_dict_from_yaml(ENV_FILE_NAME))

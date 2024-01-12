@@ -75,6 +75,7 @@ def modification_event_trigger(src_path: str):
             or not os.path.exists(dir_path)
             or DBConnection.exists(series_name)
         ):
+            LOG.info(f"Duplicate Event detected @ {src_path} with series {series_name}")
             return
 
         wait_copy_finish(dir_path)
@@ -88,7 +89,13 @@ def modification_event_trigger(src_path: str):
                 status=Status.INIT,
             )
             DBConnection.enqueue([dcm])
-    except:
+        else:
+            LOG.warning(f"SRC {src_path} not processed as no Valid model found")
+
+    except IndexError:
+        LOG.error(f"Probably Spurious Event from OS", exc_info=True)
+
+    except Exception:
         LOG.error(f"Error while processing modification {src_path}", exc_info=True)
 
 
