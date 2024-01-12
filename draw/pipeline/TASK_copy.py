@@ -22,7 +22,7 @@ from draw.utils.ioutils import get_dicom_attribute_from_dir
 COPY_WAIT_SECONDS = 20
 WATCH_DELAY = 1
 # Watchdog generates duplicate events. To fix that filter ROOT dir events
-REDUNDANT_EVENT_PATH = Path(DICOM_WATCH_DIR)
+REDUNDANT_EVENT_PATH = Path(DICOM_WATCH_DIR).resolve()
 
 
 def filter_files(path):
@@ -43,6 +43,10 @@ def determine_model(dir_path):
                 model_name = model
                 break
 
+    except IndexError:
+        LOG.error(f"No DCM found. Probably spurious event", exc_info=True)
+    except AttributeError:
+        LOG.error(f"Protocol Not Found", exc_info=True)
     except Exception:
         LOG.error(f"Ignored Exception while processing: {dir_path}", exc_info=True)
     finally:
@@ -51,10 +55,9 @@ def determine_model(dir_path):
 
 def on_modified(event: FileSystemEvent):
     src_path = Path(event.src_path)
-    LOG.debug(f"Triggered for {src_path}")
     if (
         event.is_directory
-        and src_path.resolve() != REDUNDANT_EVENT_PATH.resolve()
+        and src_path.resolve() != REDUNDANT_EVENT_PATH
         and not event.is_synthetic
     ):
         modification_event_trigger(event.src_path)
@@ -84,7 +87,7 @@ def modification_event_trigger(src_path: str):
                 series_name=series_name,
                 status=Status.INIT,
             )
-            DBConnection.insert([dcm])
+            DBConnection.enqueue([dcm])
     except:
         LOG.error(f"Error while processing modification {src_path}", exc_info=True)
 

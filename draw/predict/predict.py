@@ -4,8 +4,6 @@ from datetime import datetime
 from functools import partial
 from multiprocessing.pool import Pool
 from typing import List
-from draw.dao.common import Status
-from draw.dao.db import DBConnection
 
 from draw.utils import ioutils
 from draw.utils.nifti2rt import convert_nifti_outputs_to_dicom
@@ -20,8 +18,6 @@ POOL_WORKERS = 2
 
 
 def folder_predict(dcm_logs: List[DicomLog], preds_dir, dataset_name, only_original):
-    for dcm_log in dcm_logs:
-        DBConnection.update_status_by_id(dcm_log, Status.STARTED)
     task_map = ALL_SEG_MAP[dataset_name]
     exp_number = datetime.now().strftime("%Y-%m-%d.%H-%M")
     parent_dataset_name = dataset_name
@@ -63,7 +59,7 @@ def folder_predict(dcm_logs: List[DicomLog], preds_dir, dataset_name, only_origi
             exp_number,
             seg_map,
         )
-    LOG.info(F"Prediction Complete for {dataset_name}")
+    LOG.info(f"Prediction Complete for {dataset_name}")
 
 
 def predict_one_dataset(

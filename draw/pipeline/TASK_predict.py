@@ -9,6 +9,7 @@ from draw.dao.common import Status
 from draw.dao.db import DBConnection
 from draw.dao.table import DicomLog
 from draw.predict import folder_predict
+from retry.api import retry_call
 
 GPU_RECHECK_TIME_SECONDS = 5
 REQUIRED_FREE_MEMORY_BYTES = int(5 * 1024)
@@ -38,16 +39,28 @@ def send_to_external_server(pred_dcm_logs: List[DicomLog]):
 
 
 def run_prediction(seg_model_name):
-    all_dcm_files = DBConnection.top(seg_model_name, Status.INIT)
+    all_dcm_files = DBConnection.dequeue(seg_model_name)
     if len(all_dcm_files) > 0:
-        folder_predict(all_dcm_files, OUTPUT_DIR, seg_model_name, True)
+        run_prediction_with_retry(seg_model_name, all_dcm_files)
         pred_dcm_logs = DBConnection.top(seg_model_name, Status.PREDICTED)
         LOG.info(f"Got {len(pred_dcm_logs)} from DB")
-        # for dcm in pred_dcm_logs:
-        #     copy_input_dcm_to_output(dcm.input_path, dcm.output_path)
         send_to_external_server(pred_dcm_logs)
         return True
     return False
+
+
+def run_prediction_with_retry(seg_model_name, all_dcm_files):
+    retry_call(
+        folder_predict,
+        fargs=(
+            all_dcm_files,
+            OUTPUT_DIR,
+            seg_model_name,
+            True,
+        ),
+        tries=2,
+        logger=LOG,
+    )
 
 
 def task_model_prediction():
