@@ -86,10 +86,11 @@ class DBConnection:
             records (List[DicomLog]): Records to insert in the DB
         """
         try:
+            lr = len(records)
             with Session(DB_ENGINE) as sess:
                 sess.add_all(records)
                 sess.commit()
-            LOG.info(f"Enqued {records}")
+            LOG.info(f"Enqued {lr}")
         except:
             LOG.error(f"Could not insert Records", exc_info=True)
 

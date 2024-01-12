@@ -288,6 +288,7 @@ output/*
 !data/.gitkeep
 env.draw.yml
 alembic/versions
+logs/*
 !logs/.gitkeep
 temp/*
 !temp/.gitkeep

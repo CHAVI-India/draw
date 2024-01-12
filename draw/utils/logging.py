@@ -20,7 +20,7 @@ log_config = {
     },
     "formatters": {
         "custom_format": {
-            "format": "%(asctime)s, PID: %(process)d [%(levelname)s]  %(module)s.%(funcName)s at %(lineno)d: %(message)s",
+            "format": "%(asctime)s, PID: %(process)5d [%(levelname)7s] %(module)s.%(funcName)s@%(lineno)d: %(message)s",
         },
     },
     "root": {

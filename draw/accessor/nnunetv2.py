@@ -1,6 +1,5 @@
 import os
 import subprocess
-import sys
 
 
 class NNUNetV2Adapter:
@@ -27,6 +26,9 @@ class NNUNetV2Adapter:
         os.environ["nnUNet_def_n_proc"] = "6"
         os.environ["nnUNet_n_proc_DA"] = "6"
         os.environ["nnUNet_compile"] = "1"
+        os.makedirs(self.raw_dir, exist_ok=True)
+        os.makedirs(self.preprocessed_dir, exist_ok=True)
+        os.makedirs(self.preds_dir, exist_ok=True)
 
     def determine_postprocessing(self, input_folder, gt_labels_folder, dj_file, p_file):
         """
