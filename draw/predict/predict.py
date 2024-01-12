@@ -5,16 +5,20 @@ from functools import partial
 from multiprocessing.pool import Pool
 from typing import List
 
-from draw.utils import ioutils
-from draw.utils.nifti2rt import convert_nifti_outputs_to_dicom
-from draw.config import ALL_SEG_MAP, LOG, SAMPLE_NUMBER_ZFILL, NNUNET_RAW_DATA_ENV_KEY
+from draw.config import (
+    ALL_SEG_MAP,
+    LOG,
+    MULTIPROCESSING_NUM_POOL_WORKERS,
+    NNUNET_RAW_DATA_ENV_KEY,
+    SAMPLE_NUMBER_ZFILL,
+)
 from draw.dao.table import DicomLog
-from draw.postprocess import postprocess_folder
 from draw.evaluate.evaluate import generate_labels_on_data
+from draw.postprocess import postprocess_folder
 from draw.preprocess.preprocess_data import convert_dicom_dir_to_nnunet_dataset
-from draw.utils.ioutils import remove_stuff, normpath
-
-POOL_WORKERS = 2
+from draw.utils import ioutils
+from draw.utils.ioutils import normpath, remove_stuff
+from draw.utils.nifti2rt import convert_nifti_outputs_to_dicom
 
 
 def folder_predict(dcm_logs: List[DicomLog], preds_dir, dataset_name, only_original):
@@ -22,7 +26,7 @@ def folder_predict(dcm_logs: List[DicomLog], preds_dir, dataset_name, only_origi
     exp_number = datetime.now().strftime("%Y-%m-%d.%H-%M")
     parent_dataset_name = dataset_name
 
-    with Pool(processes=POOL_WORKERS) as m_pool:
+    with Pool(processes=MULTIPROCESSING_NUM_POOL_WORKERS) as m_pool:
         # in order of keys, keys order guaranteed by python
         all_model_prediction_dirs = m_pool.map(
             partial(
