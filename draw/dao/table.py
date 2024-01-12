@@ -56,3 +56,6 @@ class DicomLog(Base):
             "model": self.model,
             "created_on": self.created_on,
         }
+
+    def set_status(self, status: Status):
+        self.status = status

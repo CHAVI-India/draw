@@ -8,11 +8,45 @@ from sqlalchemy.orm import Session
 from sqlalchemy import exists, select, update
 
 
+def dequeue_from_db(dcm: DicomLog):
+    DBConnection.update_status_by_id(dcm, Status.STARTED)
+    dcm.set_status(Status.STARTED)
+    return dcm
+
+
 class DBConnection:
     """Querying the database and interacting with the records"""
 
     @staticmethod
+    def dequeue(model: str) -> List[DicomLog]:
+        """Dequeue batched records from the DB
+
+        Args:
+            model (str): Model name which record to fetch
+
+        Returns:
+            List[DicomLog]: Batch of DICOM records to run prediction on
+        """
+        try:
+            top_dcm_logs = [
+                dequeue_from_db(dcm) for dcm in DBConnection.top(model, Status.INIT)
+            ]
+            LOG.info(f"Dequeing {len(top_dcm_logs)}")
+            return top_dcm_logs
+        except Exception:
+            LOG.error("ERROR while dequeing", exc_info=True)
+            return []
+
+    @staticmethod
     def exists(series_name: str) -> bool:
+        """Check if Series Name exists in DB or not
+
+        Args:
+            series_name (str): Series Instance UID of the DICOM file
+
+        Returns:
+            bool: If the series_name exists in the DB or not
+        """
         with Session(DB_ENGINE) as sess:
             exists_query = sess.query(
                 exists().where(DicomLog.series_name == series_name)
@@ -45,16 +79,18 @@ class DBConnection:
             return []
 
     @staticmethod
-    def insert(records: List[DicomLog]):
+    def enqueue(records: List[DicomLog]):
         """Inserts list of records into the DB
 
         Args:
             records (List[DicomLog]): Records to insert in the DB
         """
         try:
+            lr = len(records)
             with Session(DB_ENGINE) as sess:
                 sess.add_all(records)
                 sess.commit()
+            LOG.info(f"Enqued {lr}")
         except:
             LOG.error(f"Could not insert Records", exc_info=True)
 

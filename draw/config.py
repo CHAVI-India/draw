@@ -2,7 +2,7 @@ import dataclasses
 import os
 
 from draw.utils.logging import get_log
-from draw.utils.mapping import get_model_maps, get_env_map
+from draw.utils.mapping import get_env_map, get_model_maps
 
 YML_ENV = get_env_map()
 
@@ -24,14 +24,14 @@ OUTPUT_DIR = "output"
 NNUNET_RAW_DATA_ENV_KEY = "nnUNet_raw"
 NNUNET_RESULTS_DATA_ENV_KEY = "nnUNet_results"
 NNUNET_PREPROCESSED_ENV_KEY = "nnUNet_preprocessed"
-RT_DEFAULT_FILE_NAME = "Pred_RT.dcm"
+RT_DEFAULT_FILE_NAME = "AUTOSEGMENT.RT.dcm"
 RTSTRUCT_STRING = "RTSTRUCT"
 DB_NAME = "db.json"
 DEFAULT_FOLD = "0"
 CSV_FILE_PATH = "db.json"
 DCM_REGEX = "**/**.dcm"
 LOG = get_log()
-DEFAULT_MASK_NAME = "draw_default_mask.nii.gz"
+DEFAULT_MASK_NAME = "default.nii.gz"
 SAMPLE_NUMBER_ZFILL = 3
 
 
@@ -48,3 +48,10 @@ DATASET_JSON_FILENAME = "dataset.json"
 PLANS_JSON_FILENAME = "plans.json"
 SUMMARY_JSON_FILENAME = "summary.json"
 MODEL_FOLDS = ["0", "1", "2", "3", "4"]
+
+# Parallelograaaam!
+GPU_RECHECK_TIME_SECONDS = 10
+GPU_FREE_GB = 5
+REQUIRED_FREE_MEMORY_BYTES = GPU_FREE_GB * 1024
+MULTIPROCESSING_NUM_POOL_WORKERS = 3
+TORCH_NUM_THREADS = 6

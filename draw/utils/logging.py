@@ -8,14 +8,19 @@ log_config = {
             "formatter": "custom_format",
         },
         "file": {
-            "class": "logging.FileHandler",
+            "class": "logging.handlers.TimedRotatingFileHandler",
             "filename": "logs/logfile.log",
+            "when": "midnight",  # rotate daily
+            "interval": 1,  # every day
+            "backupCount": 7,  # keep 7 backup copies
+            "encoding": "utf-8",
+            "level": "INFO",
             "formatter": "custom_format",
         },
     },
     "formatters": {
         "custom_format": {
-            "format": "%(asctime)s [%(levelname)s] %(process)d, %(funcName)s, %(lineno)d: %(message)s",
+            "format": "%(asctime)s, PID: %(process)5d [%(levelname)7s] %(module)s.%(funcName)s@%(lineno)d: %(message)s",
         },
     },
     "root": {
