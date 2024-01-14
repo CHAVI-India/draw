@@ -7,7 +7,6 @@ from draw.config import (
     LOG,
     ALL_SEG_MAP,
     NNUNET_PREPROCESSED_ENV_KEY,
-    NNUNET_RAW_DATA_ENV_KEY,
     NNUNET_RESULTS_DATA_ENV_KEY,
     DATASET_JSON_FILENAME,
     PLANS_JSON_FILENAME,
@@ -118,7 +117,7 @@ def get_evaluation_file_paths(
         f"/gt_segmentations"
     )
 
-    preds_dir = normpath(f"{results_dir}/fold_{0}/validation")
+    preds_dir = normpath(f"{results_dir}/fold_{fold_no}/validation")
     os.makedirs(preds_dir, exist_ok=True)
 
     dj_file = normpath(f"{results_dir}/{DATASET_JSON_FILENAME}")

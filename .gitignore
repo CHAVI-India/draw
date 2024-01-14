@@ -273,22 +273,21 @@ pyrightconfig.json
 
 # End of https://www.toptal.com/developers/gitignore/api/python,visualstudiocode,data,images
 
-data/**
+# Environment file
+env.draw.yml
 
-ignore.py
-
-output/TSPrime/**
-tsprime_ctvn*
-preds
+# Directories to Ignore
 .vscode
 .venv39
-output/*
+data/*
+output/**
+temp/**
+logs/**
 .idea
-!output/.gitkeep
+
+# Keep .gitkeep to preserve dir structures
 !data/.gitkeep
-env.draw.yml
-alembic/versions
-logs/*
 !logs/.gitkeep
-temp/*
+!output/.gitkeep
 !temp/.gitkeep
+!data/.gitkeep
