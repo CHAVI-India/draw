@@ -8,7 +8,6 @@ import nibabel as nib
 import numpy as np
 
 from draw.config import (
-    TEMP_DIR_BASE,
     NNUNET_RAW_DATA_ENV_KEY,
     DB_NAME,
     LOG,
@@ -138,7 +137,7 @@ def convert_dicom_to_nifti(
     seg_map,
     only_original=True,
 ):
-    with tempfile.TemporaryDirectory(dir=TEMP_DIR_BASE) as temp_dir:
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
         rt_file_path = get_rt_file_path(dicom_dir) if not only_original else None
         dicom_dir_immediate_parent = get_immediate_dicom_parent_dir(dicom_dir)
         DicomConverters.convert_DICOM_to_Multi_NIFTI(
