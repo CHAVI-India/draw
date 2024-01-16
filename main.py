@@ -1,5 +1,4 @@
 import multiprocessing
-import torch
 import click
 
 from draw.cli import (
@@ -9,7 +8,6 @@ from draw.cli import (
     cli_start_pipeline,
     cli_export,
 )
-from draw.config import TORCH_NUM_THREADS
 
 
 @click.group(
@@ -29,5 +27,4 @@ cli.add_command(cli_export, "zip-model")
 
 if __name__ == "__main__":
     multiprocessing.freeze_support()
-    torch.set_num_threads(TORCH_NUM_THREADS)
     cli()
