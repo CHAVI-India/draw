@@ -137,7 +137,7 @@ def convert_dicom_to_nifti(
     seg_map,
     only_original=True,
 ):
-    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+    with tempfile.TemporaryDirectory() as temp_dir:
         rt_file_path = get_rt_file_path(dicom_dir) if not only_original else None
         dicom_dir_immediate_parent = get_immediate_dicom_parent_dir(dicom_dir)
         DicomConverters.convert_DICOM_to_Multi_NIFTI(
