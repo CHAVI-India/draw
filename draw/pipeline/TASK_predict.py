@@ -2,9 +2,14 @@ from itertools import cycle
 import time
 from typing import List
 
-from draw.config import MODEL_CONFIG, LOG, OUTPUT_DIR
-from draw.config import GPU_RECHECK_TIME_SECONDS
-from draw.config import REQUIRED_FREE_MEMORY_BYTES
+from draw.config import (
+    MODEL_CONFIG,
+    LOG,
+    OUTPUT_DIR,
+    PREDICTION_COOLDOWN_SECS,
+    GPU_RECHECK_TIME_SECONDS,
+    REQUIRED_FREE_MEMORY_BYTES,
+)
 from draw.dao.common import Status
 from draw.dao.db import DBConnection
 from draw.dao.table import DicomLog
@@ -25,6 +30,7 @@ def send_to_external_server(pred_dcm_logs: List[DicomLog]):
 def run_prediction(seg_model_name):
     all_dcm_files = DBConnection.dequeue(seg_model_name)
     if len(all_dcm_files) > 0:
+        time.sleep(PREDICTION_COOLDOWN_SECS)
         run_prediction_with_retry(seg_model_name, all_dcm_files)
         pred_dcm_logs = DBConnection.top(seg_model_name, Status.PREDICTED)
         LOG.info(f"Got {len(pred_dcm_logs)} from DB")
@@ -44,7 +50,7 @@ def run_prediction_with_retry(seg_model_name, all_dcm_files):
         ),
         tries=2,
         logger=LOG,
-        delay=5,
+        delay=PREDICTION_COOLDOWN_SECS,
     )
 
 

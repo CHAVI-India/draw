@@ -33,6 +33,7 @@ DCM_REGEX = "**/**.dcm"
 LOG = get_log()
 DEFAULT_MASK_NAME = "default.nii.gz"
 SAMPLE_NUMBER_ZFILL = 3
+PREDICTION_COOLDOWN_SECS = 30
 
 
 # DCM Tag
