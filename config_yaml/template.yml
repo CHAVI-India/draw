@@ -1,0 +1,31 @@
+# Instructions: Copy this file and modify it to suit the model needs. 
+# Please ensure that a informative name is entered. Here the example name is TSPrimeExample and model numbers are 720,721 and 722
+name: TSPrimeExample # Model Name as per the desired nomeclature. This will be the name of the final model. Ensure data folder contains a raw folder with the same name structure. 
+protocol: prostate # This identifies the CT protocol which will be read from the DICOM data. 
+models: # In this section we will specify all the organs and targets that need to be segmented. Each model can have multiple submodels which predict a set of structures
+  720: # This is a model ID and must be unique. Please refer to the model information available. 
+    name: TSPrimeExample # Reference to model nanem as above
+    config: 3d_fullres # Configuration to determine the model resolution for training and prediction. 
+    map: # In this section we specify the names of the structes which will be segmented
+      1: Bladder
+      2: Anorectum
+      3: Bag_Bowel
+      4: Femur_Head_L
+      5: Femur_Head_R
+      6: Penilebulb
+    trainer_name: nnUNetTrainerNoMirroring # Name of the model training method
+    postprocess: data/nnUNet_results/Dataset720_TSPrime/nnUNetTrainerNoMirroring__nnUNetPlans__3d_fullres/postprocessing.pkl # Add any post processing steps
+  721: # Second model ID which whill be unique and will refer to a sperate set of structers. 
+    name: TSPrimeCTVPExample
+    config: 3d_lowres
+    map:
+      1: Ctvp
+    trainer_name: nnUNetTrainer
+    postprocess: null
+  722:
+    name: TSPrimeCTVNExample
+    config: 3d_fullres
+    map:
+      1: Ctvn
+    trainer_name: nnUNetTrainer
+    postprocess: null
