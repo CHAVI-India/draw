@@ -1,0 +1,12 @@
+2024-04-01 09:22:39,516, PID: 11595 [   INFO] preprocess_data.run_pre_processing@225: Processing ID 720
+2024-04-01 09:22:39,516, PID: 11595 [   INFO] preprocess_data.run_pre_processing@226: Found 1 directories to work on...
+2024-04-01 09:22:39,891, PID: 11595 [   INFO] dcm2nii.convert_DICOM_to_Multi_NIFTI@131: Converting DICOM scan to NII for path /media/neeraj/E2/Documents/BTP/autoseg_web/media/users_data/siva/prime/2024-04-01_09-22-37/input/2013031109202300001
+2024-04-01 09:22:45,819, PID: 11595 [   INFO] dcm2nii.convert_DICOM_to_Multi_NIFTI@140: Saved Default Empty Mask at /tmp/tmpp65wlzgt/default.nii.gz
+2024-04-01 09:22:45,819, PID: 11595 [   INFO] dcm2nii.convert_DICOM_to_Multi_NIFTI@142: Conversion for /media/neeraj/E2/Documents/BTP/autoseg_web/media/users_data/siva/prime/2024-04-01_09-22-37/input/2013031109202300001 complete
+2024-04-01 09:22:45,819, PID: 11595 [   INFO] dcm2nii.convert_DICOM_to_Multi_NIFTI@143: Final output saved at data/nnUNet_raw/Dataset720_TSPrime/imagesTr/seg_001_0000.nii.gz
+2024-04-01 09:24:59,544, PID: 12585 [   INFO] preprocess_data.run_pre_processing@225: Processing ID 720
+2024-04-01 09:24:59,544, PID: 12585 [   INFO] preprocess_data.run_pre_processing@226: Found 1 directories to work on...
+2024-04-01 09:24:59,824, PID: 12585 [   INFO] dcm2nii.convert_DICOM_to_Multi_NIFTI@131: Converting DICOM scan to NII for path /media/neeraj/E2/Documents/BTP/autoseg_web/media/users_data/siva/prime/2024-04-01_09-24-58/input/2013031109202300001
+2024-04-01 09:25:07,162, PID: 12585 [   INFO] dcm2nii.convert_DICOM_to_Multi_NIFTI@140: Saved Default Empty Mask at /tmp/tmp_jc50i8t/default.nii.gz
+2024-04-01 09:25:07,163, PID: 12585 [   INFO] dcm2nii.convert_DICOM_to_Multi_NIFTI@142: Conversion for /media/neeraj/E2/Documents/BTP/autoseg_web/media/users_data/siva/prime/2024-04-01_09-24-58/input/2013031109202300001 complete
+2024-04-01 09:25:07,163, PID: 12585 [   INFO] dcm2nii.convert_DICOM_to_Multi_NIFTI@143: Final output saved at data/nnUNet_raw/Dataset720_TSPrime/imagesTr/seg_001_0000.nii.gz

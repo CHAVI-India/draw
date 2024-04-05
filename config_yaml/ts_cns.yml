@@ -1,0 +1,43 @@
+name: TSCns
+protocol: cns
+models:
+  920:
+    name: TSCns
+    config: 3d_lowres   # 3d_fullres
+    map:
+      1: Brain
+      2: Cochlea_L
+      3: Cochlea_R
+      4: Eye_L
+      5: Eye_R
+    trainer_name: nnUNetTrainer
+    postprocess: null
+  921:
+    name: TSCnsLensOptic
+    config: 3d_fullres
+    map:
+      1: Lens_L
+      2: Lens_R
+      3: OpticNrv_L
+      4: OpticNrv_R
+      5: OpticChiasm
+    trainer_name: nnUNetTrainer
+    postprocess: null
+  922:
+    name: TSCnsHippocampus
+    config: 3d_lowres
+    map:
+      1: Brainstem
+      2: Hippocampus_L
+      3: Hippocampus_R
+    trainer_name: nnUNetTrainer
+    postprocess: null
+
+  923:
+    name: TSCnsTemporal
+    config: 3d_lowres
+    map:
+      1: Lobe_Temporal_L
+      2: Lobe_Temporal_R
+    trainer_name: nnUNetTrainer
+    postprocess: null

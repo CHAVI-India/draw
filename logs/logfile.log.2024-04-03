@@ -1,0 +1,28 @@
+2024-04-03 08:56:40,117, PID: 35967 [   INFO] preprocess_data.run_pre_processing@225: Processing ID 720
+2024-04-03 08:56:40,117, PID: 35967 [   INFO] preprocess_data.run_pre_processing@226: Found 1 directories to work on...
+2024-04-03 08:56:40,517, PID: 35967 [   INFO] dcm2nii.convert_DICOM_to_Multi_NIFTI@131: Converting DICOM scan to NII for path /media/neeraj/E2/Documents/BTP/autoseg_web/media/users_data/siva/prime/2024-04-03_08-56-38/input/2013031109202300001
+2024-04-03 08:56:47,898, PID: 35967 [   INFO] dcm2nii.convert_DICOM_to_Multi_NIFTI@140: Saved Default Empty Mask at /tmp/tmpeo1jbn2p/default.nii.gz
+2024-04-03 08:56:47,898, PID: 35967 [   INFO] dcm2nii.convert_DICOM_to_Multi_NIFTI@142: Conversion for /media/neeraj/E2/Documents/BTP/autoseg_web/media/users_data/siva/prime/2024-04-03_08-56-38/input/2013031109202300001 complete
+2024-04-03 08:56:47,898, PID: 35967 [   INFO] dcm2nii.convert_DICOM_to_Multi_NIFTI@143: Final output saved at data/nnUNet_raw/Dataset720_TSPrime/imagesTr/seg_001_0000.nii.gz
+2024-04-03 09:45:50,350, PID: 48106 [   INFO] preprocess_data.run_pre_processing@225: Processing ID 720
+2024-04-03 09:45:50,350, PID: 48106 [   INFO] preprocess_data.run_pre_processing@226: Found 1 directories to work on...
+2024-04-03 09:45:50,749, PID: 48106 [   INFO] dcm2nii.convert_DICOM_to_Multi_NIFTI@131: Converting DICOM scan to NII for path /media/neeraj/E2/Documents/BTP/autoseg_web/media/users_data/siva/prime/2024-04-03_09-45-48/input/2013031109202300001
+2024-04-03 09:45:57,898, PID: 48106 [   INFO] dcm2nii.convert_DICOM_to_Multi_NIFTI@140: Saved Default Empty Mask at /tmp/tmpgzih7fk9/default.nii.gz
+2024-04-03 09:45:57,898, PID: 48106 [   INFO] dcm2nii.convert_DICOM_to_Multi_NIFTI@142: Conversion for /media/neeraj/E2/Documents/BTP/autoseg_web/media/users_data/siva/prime/2024-04-03_09-45-48/input/2013031109202300001 complete
+2024-04-03 09:45:57,898, PID: 48106 [   INFO] dcm2nii.convert_DICOM_to_Multi_NIFTI@143: Final output saved at data/nnUNet_raw/Dataset720_TSPrime/imagesTr/seg_001_0000.nii.gz
+2024-04-03 09:49:06,193, PID: 49642 [   INFO] preprocess_data.run_pre_processing@225: Processing ID 720
+2024-04-03 09:49:06,193, PID: 49642 [   INFO] preprocess_data.run_pre_processing@226: Found 1 directories to work on...
+2024-04-03 09:49:06,502, PID: 49642 [   INFO] dcm2nii.convert_DICOM_to_Multi_NIFTI@131: Converting DICOM scan to NII for path /media/neeraj/E2/Documents/BTP/autoseg_web/media/users_data/siva/prime/2024-04-03_09-49-04/input/2013031109202300001
+2024-04-03 09:49:13,448, PID: 49642 [   INFO] dcm2nii.convert_DICOM_to_Multi_NIFTI@140: Saved Default Empty Mask at /tmp/tmp9l_mx2mu/default.nii.gz
+2024-04-03 09:49:13,448, PID: 49642 [   INFO] dcm2nii.convert_DICOM_to_Multi_NIFTI@142: Conversion for /media/neeraj/E2/Documents/BTP/autoseg_web/media/users_data/siva/prime/2024-04-03_09-49-04/input/2013031109202300001 complete
+2024-04-03 09:49:13,448, PID: 49642 [   INFO] dcm2nii.convert_DICOM_to_Multi_NIFTI@143: Final output saved at data/nnUNet_raw/Dataset720_TSPrime/imagesTr/seg_001_0000.nii.gz
+2024-04-03 10:51:40,378, PID: 59933 [   INFO] preprocess_data.run_pre_processing@225: Processing ID 720
+2024-04-03 10:51:40,378, PID: 59933 [   INFO] preprocess_data.run_pre_processing@226: Found 2 directories to work on...
+2024-04-03 10:51:40,729, PID: 59933 [   INFO] dcm2nii.convert_DICOM_to_Multi_NIFTI@131: Converting DICOM scan to NII for path /media/neeraj/E2/Documents/BTP/autoseg_web/media/users_data/siva/prime/2024-04-03_10-51-38/input/2013031109202300001
+2024-04-03 10:51:48,981, PID: 59933 [   INFO] dcm2nii.convert_DICOM_to_Multi_NIFTI@140: Saved Default Empty Mask at /tmp/tmpmjftekc7/default.nii.gz
+2024-04-03 10:51:48,981, PID: 59933 [   INFO] dcm2nii.convert_DICOM_to_Multi_NIFTI@142: Conversion for /media/neeraj/E2/Documents/BTP/autoseg_web/media/users_data/siva/prime/2024-04-03_10-51-38/input/2013031109202300001 complete
+2024-04-03 10:51:48,981, PID: 59933 [   INFO] dcm2nii.convert_DICOM_to_Multi_NIFTI@143: Final output saved at data/nnUNet_raw/Dataset720_TSPrime/imagesTr/seg_001_0000.nii.gz
+2024-04-03 10:51:49,285, PID: 59933 [   INFO] dcm2nii.convert_DICOM_to_Multi_NIFTI@131: Converting DICOM scan to NII for path /media/neeraj/E2/Documents/BTP/autoseg_web/media/users_data/siva/prime/2024-04-03_10-51-38/input/2013031109202300002
+2024-04-03 10:51:55,519, PID: 59933 [   INFO] dcm2nii.convert_DICOM_to_Multi_NIFTI@140: Saved Default Empty Mask at /tmp/tmpll6b7jfi/default.nii.gz
+2024-04-03 10:51:55,519, PID: 59933 [   INFO] dcm2nii.convert_DICOM_to_Multi_NIFTI@142: Conversion for /media/neeraj/E2/Documents/BTP/autoseg_web/media/users_data/siva/prime/2024-04-03_10-51-38/input/2013031109202300002 complete
+2024-04-03 10:51:55,519, PID: 59933 [   INFO] dcm2nii.convert_DICOM_to_Multi_NIFTI@143: Final output saved at data/nnUNet_raw/Dataset720_TSPrime/imagesTr/seg_002_0000.nii.gz
