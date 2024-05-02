@@ -8,9 +8,9 @@ for segmentation and get the segmentation results and also view them.
 ![home_page](https://github.com/CHAVI-India/draw/assets/101348975/bdcc6684-ce5c-49a3-885a-1b1aacd36e06)
 ![view_rtstruct](https://github.com/CHAVI-India/draw/assets/101348975/b017ddd1-71ba-46c8-aa2e-c9d67f059f5f)
 
+## Steps to setup the software
 
-
-Setting up database
+-> Setting up database
 
 login to mysql as root by "mysql -u root -p"
 
@@ -22,5 +22,10 @@ GRANT ALL PRIVILEGES ON autoseg.* TO 'autoseg_admin'@'localhost';
 
 FLUSH PRIVILEGES;
 
+-> Starting the server
 
-create users_data directory in media folder
+1) create users_data directory in media folder.
+2) Install all dependencies from requirements.txt using "pip install -r requirements.txt"
+3) Start the server by executing "python manage.py runserver"
+
+
