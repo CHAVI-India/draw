@@ -26,6 +26,7 @@ FLUSH PRIVILEGES;
 
 1) create users_data directory in media folder.
 2) Install all dependencies from requirements.txt using "pip install -r requirements.txt"
-3) Start the server by executing "python manage.py runserver"
+3) Activate the virtual environment.
+4) Start the server by executing "python manage.py runserver"
 
 
