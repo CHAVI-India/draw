@@ -93,7 +93,7 @@ def copy_filtered_files(src_dir, dst_base_dir, filter_fxn):
     return updated_dir_path
 
 
-def get_dicom_attribute_from_dir(dir_path: str, attrib_key: tuple) -> str | None:
+def get_dicom_attribute_from_dir(dir_path: str, attrib_key: tuple) -> str: #| None
     f = dcmread(str(get_one_dcm_path(dir_path)))
     if attrib_key in f:
         return str(f[attrib_key].value)
