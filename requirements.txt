@@ -2,8 +2,8 @@
 alembic==1.13.1
 click==8.1.7
 dcmrtstruct2nii==5
+git+https://github.com/Dutta-SD/nnunet_draw.git@draw_main
 nibabel==5.1.0
-nnunetv2==2.1
 numpy==1.26.0
 pandas==2.1.4
 pydicom==2.4.3
