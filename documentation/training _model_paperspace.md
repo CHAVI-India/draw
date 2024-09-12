@@ -88,7 +88,7 @@ Note: Adjust GPU settings and specify higher GPU space if necessary using `--gpu
 
 ### 12. Screen Off
 
-Exit the screen session by pressing `Ctrl + d` and then `a`.
+Exit the screen session by pressing `Ctrl + a` and then `d`.
 
 ### 13. Check Training Log
 
