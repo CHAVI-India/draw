@@ -14,7 +14,7 @@ schema==0.7.5
 simpleitk==2.3.1
 sqlalchemy==2.0.21
 # Download as per GPU and latest CUDA
-torch==2.1.0
+torch==2.0.0
 torchaudio==2.1.0
 torchvision==0.16.0
 watchdog==3.0.0
