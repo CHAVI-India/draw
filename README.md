@@ -1,35 +1,43 @@
-# DRAW: Autosegment
+# DRAW: Autosegmentation for Radiation Therapy Planning
 
-In the realm of Radiation Therapy Planning,
-the significance of segmentation cannot be overstated.
-Despite the existing availability of open-source models,
-there is a notable absence of comprehensive solutions
-that facilitate end-to-end segmentation for both organs at risk
-and target volumes. To address this gap, we present the A9T framework,
-leveraging the power of the nnUNet architecture.
-This module is specifically tailored for seamless integration
-into radiotherapy planning workflows.
+DRAW (Deep Radiotherapy Autosegmentation Workflow) is a comprehensive solution for automatic segmentation of organs at risk (OARs) and target volumes in radiation therapy planning. It leverages the powerful nnUNet architecture and is designed to seamlessly integrate into radiotherapy planning workflows.
 
 ## Features
 
-- Seamlessly integrates with `DICOM` images, ensuring compatibility with standard medical imaging formats.
-- Deals with Structure Overlap by splitting models
-- Predicts both `Organs-At-Risk` and `Clinical Target Volumes`
-- Works on multiple cancer sites:
-  - `TSPrime`: Prostate Cancer Patients
-  - `TSGyne`: Full Bladder Patients?
-- Supports the execution of models in parallel using `multiprocessing`
-- DRAW caters to the diverse needs of users by offering both automatic and manual segmentation options
-- Database Integration for Monitoring and Analysing Workflows
+- **DICOM Compatibility**: Seamlessly integrates with DICOM images, ensuring compatibility with standard medical imaging formats.
+- **Structure Overlap Handling**: Deals with overlapping structures by splitting models.
+- **Comprehensive Segmentation**: Predicts both organs at risk (OARs) and clinical target volumes (CTVs).
+- **Multi-Site Support**: Works on multiple cancer sites, including prostate cancer patients (TSPrime) and full bladder patients (TSGyne).
+- **Parallel Execution**: Supports the execution of models in parallel using multiprocessing.
+- **Flexible Segmentation Options**: DRAW caters to diverse user needs by offering both automatic and manual segmentation options.
+- **Database Integration**: Integrates with a database for monitoring and analyzing workflows.
 
-## Code Documentation
+![Sample Prediction](assets/BiomedicalSegmentation-Results-final.drawio.png)
 
-For details about various commands, see [documentation](documentation)
+## Installation
 
-## How to run
+1. Clone the repository:
 
-Incoming
+```
+git clone https://github.com/Dutta-SD/nnunet_draw.git
+```
 
-## Acknowledgements and Future Plans
+2. Install the required dependencies:
 
-TODO
+```
+pip install -r requirements.txt
+```
+
+3. Set up the environment variables by creating an `env.draw.yml` file based on the provided `template.env.draw.yml`.
+
+## Usage
+
+Refer to the [documentation](documentation) for details about each CLI endpoint.
+
+## License
+
+This project is licensed under the [Apache License 2.0](LICENSE).
+
+## Acknowledgments
+
+This project is built upon the nnUNet architecture and aims to provide a comprehensive solution for autosegmentation in radiation therapy planning. We would like to thank the authors of nnUNet for their valuable work.
