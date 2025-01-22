@@ -1,0 +1,53 @@
+name: TSHeadNeck
+protocol: head_neck
+models:
+  301:
+    name: HeadNeckOAR
+    config: 3d_fullres
+    map:
+      1: Bone_Mandible
+      2: Brain
+      3: Eye_L
+      4: Eye_R
+      5: Glnd_Parotid_L
+      6: Glnd_Parotid_R
+      7: Larynx 
+      8: SpinalCord
+    trainer_name: nnUNetTrainerNoMirroring
+    postprocess: data\\nnUNet_results\\Dataset301_HeadNeckOAR\\nnUNetTrainerNoMirroring__nnUNetPlans__3d_fullres\\postprocessing.pkl
+  302:
+    name:  HeadNeckCNS
+    config: 3d_fullres
+    map:
+      1: BrainStem
+      2: Lens_L
+      3: Lens_R
+      4: OpticNrv_L
+      5: OpticNrv_R
+    trainer_name: nnUNetTrainerDiceCELoss_noSmooth
+    postprocess: data\\nnUNet_results\\Dataset302_HeadNeckCNS\\nnUNetTrainerDiceCELoss_noSmooth__nnUNetPlans__3d_fullres\\postprocessing.pkl
+  303: 
+    name: HeadNeckCochlea
+    config: 3d_fullres
+    map:
+      1: Cochlea_L
+      2: Cochlea_R
+    trainer_name: nnUNetTrainerDiceCELoss_noSmooth
+    postprocess: data\\nnUNet_results\\Dataset303_HeadNeckCochlea\\nnUNetTrainerDiceCELoss_noSmooth__nnUNetPlans__3d_fullres\\postprocessing.pkl
+  304:
+    name: HeadNeckBPlexus
+    config: 3d_fullres
+    map:
+      1: Lips
+      2: Pituitary
+      3: Glnd_Thyroid
+      4: OpticChiasm
+    trainer_name: nnUNetTrainerDiceCELoss_noSmooth
+    postprocess: data\\nnUNet_results\\Dataset304_HeadNeckBPlexus\\nnUNetTrainerDiceCELoss_noSmooth__nnUNetPlans__3d_fullres\\postprocessing.pkl
+  305:
+    name: HeadNeckMuscConstrict
+    config: 3d_fullres
+    map:
+      1: Musc_Constrict
+    trainer_name: nnUNetTrainerDiceCELoss_noSmooth
+    postprocess: data\\nnUNet_results\\Dataset305_HeadNeckMuscConstrict\\nnUNetTrainerDiceCELoss_noSmooth__nnUNetPlans__3d_fullres\\postprocessing.pkl

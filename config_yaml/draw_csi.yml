@@ -1,0 +1,107 @@
+
+name: DrawCSI
+protocol: csi
+models:
+  901:
+    name: CSICtvpBrain
+    config: 3d_fullres
+    map:
+      1: Ctvp_brain
+    trainer_name: nnUNetTrainerDiceCELoss_noSmooth
+    postprocess: null
+    # postprocess: data\\nnUNet_results\\Dataset901_CSICtvpBrain\\nnUNetTrainerDiceCELoss_noSmooth__nnUNetPlans__3d_fullres\\postprocessing.pkl
+  902:
+    name: CSICtvpSpine
+    config: 3d_fullres
+    map:
+      1: Ctvp_spine
+    trainer_name: nnUNetTrainerDiceCELoss_noSmooth
+    postprocess: null
+    # postprocess: data\\nnUNet_results\\Dataset902_CSICtvpSpine\\nnUNetTrainerDiceCELoss_noSmooth__nnUNetPlans__3d_fullres\\postprocessing.pkl
+  903:
+    name: CSICtvpPostFossa
+    config: 3d_fullres
+    map:
+      1: Ctvp_PF
+    trainer_name: nnUNetTrainerDiceCELoss_noSmooth
+    postprocess: null
+    # postprocess: data\\nnUNet_results\\Dataset903_CSICtvpPostFossa\\nnUNetTrainerDiceCELoss_noSmooth__nnUNetPlans__3d_fullres\\postprocessing.pkl
+  650:
+    name: ThoraxOAR
+    config: 3d_fullres
+    map:
+      1: Heart
+      2: Lung_R
+      3: Lung_L
+      4: Liver
+      6: Esophagus
+    trainer_name: nnUNetTrainerNoMirroring
+    postprocess: null
+    # postprocess: data\\nnUNet_results\\Dataset650_ThoraxOAR\\nnUNetTrainerNoMirroring__nnUNetPlans__3d_fullres\\postprocessing.pkl
+  656:
+    name: LAD_Thyroid
+    config: 3d_fullres
+    map:
+      1: A_Left_Ant_Descending
+      2: Glnd_Thyroid
+    trainer_name: nnUNetTrainerDiceCELoss_noSmooth
+    postprocess: null
+    # postprocess: data\\nnUNet_results\\Dataset656_LAD_Thyroid\\nnUNetTrainerDiceCELoss_noSmooth__nnUNetPlans__3d_fullres\\postprocessing.pkl
+  # 657:
+  #   name: BrachialPlexus
+  #   config: 3d_fullres
+  #   map:
+  #     1: Brachial_Plexus_L
+  #     2: Brachial_Plexus_R
+  #   trainer_name: nnUNetTrainerDiceCELoss_noSmooth
+  #   postprocess: data\\nnUNet_results\\Dataset657_BrachialPlexus\\nnUNetTrainerDiceCELoss_noSmooth__nnUNetPlans__3d_fullres\\postprocessing.pkl
+  # 720:
+  #   name: TSPrime
+  #   config: 3d_fullres
+  #   map:
+  #     1: Bladder
+  #     2: Anorectum
+  #     3: Bag_Bowel
+  #     4: Femur_Head_L
+  #     5: Femur_Head_R
+  #   trainer_name: nnUNetTrainerNoMirroring
+  #   # postprocess: data\\nnUNet_results\\Dataset720_TSPrime\\nnUNetTrainerNoMirroring__nnUNetPlans__3d_fullres\\postprocessing.pkl
+  # 820:
+  #   name: TSGyneOrgans
+  #   config: 3d_lowres
+  #   map:
+  #     2: Duodenum
+  #     3: Pancreas
+  #     5: Colon_Sigmoid
+  #     9: Stomach
+  #     10: Spleen
+  #     12: Kidney_R
+  #     13: Kidney_L
+  #   trainer_name: nnUNetTrainer
+  #   postprocess: null
+  # 920:
+  #   name: TSCnsEye
+  #   config: 3d_lowres  
+  #   map:
+  #     1: Brain
+  #     2: Eye_L
+  #     3: Eye_R
+  #   trainer_name: nnUNetTrainer
+  #   postprocess: data\\nnUNet_results\\Dataset920_TSCns\\nnUNetTrainer__nnUNetPlans__3d_lowres\\postprocessing.pkl
+  # 922:
+  #   name: TSCnsBrainstem
+  #   config: 3d_lowres
+  #   map:
+  #     1: Brainstem
+  #   trainer_name: nnUNetTrainer
+  #   postprocess: data\\nnUNet_results\\Dataset922_TSCnsHippocampus\\nnUNetTrainer__nnUNetPlans__3d_lowres\\postprocessing.pkl
+  # 923:
+  #   name: TSCnsTemporal
+  #   config: 3d_fullres
+  #   map:
+  #     1: Lobe_Temporal_L
+  #     2: Lobe_Temporal_R
+  #   trainer_name: nnUNetTrainer
+  #   postprocess: data\\nnUNet_results\\Dataset923_TSCnsTemporal\\nnUNetTrainer__nnUNetPlans__3d_lowres\\postprocessing.pkl
+ 
+ 

@@ -1,0 +1,25 @@
+name: DrawLung
+protocol: lung_oesophagus
+models:
+  650:
+    name: ThoraxOAR
+    config: 3d_fullres
+    map:
+      1: Heart
+      2: Lung_R
+      3: Lung_L
+      4: Liver
+      5: Spinal_Cord
+      6: Esophagus
+    trainer_name: nnUNetTrainerNoMirroring
+    postprocess: null
+  657:
+    name: BrachialPlexus
+    config: 3d_fullres
+    map:
+      1: Brachial_Plexus_L
+      2: Brachial_Plexus_R
+    trainer_name: nnUNetTrainerDiceCELoss_noSmooth
+    postprocess: null
+ 
+ 

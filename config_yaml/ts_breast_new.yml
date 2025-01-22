@@ -1,0 +1,69 @@
+name: TSBreast
+protocol: breast
+models:
+  650:
+    name: ThoraxOAR
+    config: 3d_fullres
+    map:
+      1: Heart
+      2: Lung_R
+      3: Lung_L
+      4: Liver
+      5: Spinal_Cord
+      6: Esophagus
+    trainer_name: nnUNetTrainerNoMirroring
+    postprocess: data\\nnUNet_results\\Dataset650_ThoraxOAR\\nnUNetTrainerNoMirroring__nnUNetPlans__3d_fullres\\postprocessing.pkl
+  651:
+    name: BreastCTVp
+    config: 3d_fullres
+    map:
+      1: Breast_R
+      2: Breast_L
+    trainer_name: nnUNetTrainerNoMirroring
+    postprocess: data\\nnUNet_results\\Dataset651_BreastCTVp\\nnUNetTrainerNoMirroring__nnUNetPlans__3d_fullres\\postprocessing.pkl
+  652:
+    name: BreastSurgicalClips
+    config: 3d_fullres
+    map:
+      1: Surgical_Clips
+    trainer_name: nnUNetTrainerDiceCELoss_noSmooth
+    postprocess: data\\nnUNet_results\\Dataset652_BreastSurgicalClips\\nnUNetTrainerDiceCELoss_noSmooth__nnUNetPlans__3d_fullres\\postprocessing.pkl
+  653:
+    name: BreastGTVp
+    config: 3d_fullres
+    map:
+      1: Gtvp_Postop
+    trainer_name: nnUNetTrainerDiceCELoss_noSmooth
+    postprocess: data\\nnUNet_results\\Dataset653_BreastGTVp\\nnUNetTrainerDiceCELoss_noSmooth__nnUNetPlans__3d_fullres\\postprocessing.pkl
+  654:
+    name: BreastCTVIMN
+    config: 3d_fullres
+    map:
+      1: Ctv_Imn_R
+      2: Ctv_Imn_L
+    trainer_name: nnUNetTrainerDiceCELoss_noSmooth
+    postprocess: data\\nnUNet_results\\Dataset654_BreastCTVIMN\\nnUNetTrainerDiceCELoss_noSmooth__nnUNetPlans__3d_fullres\\postprocessing.pkl
+  655:
+    name: BreastCTVSCF
+    config: 3d_fullres
+    map:
+      1: Ctv_Scf_R
+      2: Ctv_Scf_L
+    trainer_name: nnUNetTrainerDiceCELoss_noSmooth
+    postprocess: data\\nnUNet_results\\Dataset655_BreastCTVSCF\\nnUNetTrainerDiceCELoss_noSmooth__nnUNetPlans__3d_fullres\\postprocessing.pkl
+  656:
+    name: LAD_Thyroid
+    config: 3d_fullres
+    map:
+      1: A_Left_Ant_Descending
+      2: Glnd_Thyroid
+    trainer_name: nnUNetTrainerDiceCELoss_noSmooth
+    postprocess: data\\nnUNet_results\\Dataset656_LAD_Thyroid\\nnUNetTrainerDiceCELoss_noSmooth__nnUNetPlans__3d_fullres\\postprocessing.pkl
+  657:
+    name: BrachialPlexus
+    config: 3d_fullres
+    map:
+      1: Brachial_Plexus_L
+      2: Brachial_Plexus_R
+    trainer_name: nnUNetTrainerDiceCELoss_noSmooth
+    postprocess: data\\nnUNet_results\\Dataset657_BrachialPlexus\\nnUNetTrainerDiceCELoss_noSmooth__nnUNetPlans__3d_fullres\\postprocessing.pkl
