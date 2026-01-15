@@ -94,6 +94,11 @@ Exit the screen session by pressing `Ctrl + a` and then `d`.
 
 Check the training log located at `data/nnUNet_results/Dataset620_<>/nnUNetTrainer_<>/fold_0`.
 
+#### Download the model
+```bash
+scp -r ubuntu@15.206.158.69:/mnt/nvme-storage/draw/data/nnunet_result_307-308.zip /home/sougata/Downloads/
+```
+
 ### 14. Repeat Steps 11 to 13
 
 Repeat steps 11 to 13 for preprocessing and training other models based on their IDs, GPU IDs, and root directories.
