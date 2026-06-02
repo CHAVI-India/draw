@@ -96,20 +96,19 @@ cp template.env.draw.yml env.draw.yml   # then fill in the values
 
 Required environment variables (in `env.draw.yml`): `DB_URL`, `DB_NAME`, `TABLE_NAME`, `WATCH_DIR`, `MODEL_DEF_ROOT`.
 
-## Usage
+## Documentation
 
-CLI documentation per command lives under [`documentation/`](documentation/):
+Comprehensive documentation lives under [`documentation/`](documentation/):
 
-- [`cli_preprocess.md`](documentation/cli_preprocess.md)
-- [`cli_train.md`](documentation/cli_train.md)
-- [`cli_predict.md`](documentation/cli_predict.md)
-- [`cli_start_pipeline.md`](documentation/cli_start_pipeline.md)
-- [`cli_zip_model.md`](documentation/cli_zip_model.md)
-
-Design documents:
-- [`design_desktop_app.md`](documentation/design_desktop_app.md) — desktop-app deployment notes
-- [`design_hld_cloud.md`](documentation/design_hld_cloud.md) — high-level cloud design
-- [`training _model_paperspace.md`](documentation/training%20_model_paperspace.md) — Paperspace training walkthrough
+- [`architecture.md`](documentation/architecture.md) — system design, module structure, key engineering decisions
+- [`installation.md`](documentation/installation.md) — prerequisites, setup, hardware requirements
+- [`cli_reference.md`](documentation/cli_reference.md) — full CLI reference for all 5 commands
+- [`configuration.md`](documentation/configuration.md) — environment file, YAML model configs, tunable constants
+- [`data_flow.md`](documentation/data_flow.md) — format conversions (DICOM ↔ NIfTI ↔ RT-Struct), axis handling
+- [`training_guide.md`](documentation/training_guide.md) — end-to-end training workflow, cloud training, resumption
+- [`pipeline.md`](documentation/pipeline.md) — continuous prediction pipeline, state machine, protocol routing
+- [`database.md`](documentation/database.md) — schema, queue operations, monitoring queries
+- [`deployment.md`](documentation/deployment.md) — single-machine and multi-hospital deployment, troubleshooting
 
 ## Citation
 
