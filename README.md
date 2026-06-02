@@ -1,6 +1,10 @@
 # DRAW — Deep Radiotherapy Autosegmentation Workflow
 
-[![Paper](https://img.shields.io/badge/Paper-CVIP%202024-blue)](https://scholar.google.com/citations?view_op=view_citation&hl=en&user=ZgBCreQAAAAJ&citation_for_view=ZgBCreQAAAAJ:9yKSN-GCB0IC)
+[![Paper](https://img.shields.io/badge/Paper-Springer%20CCIS-blue.svg)](https://doi.org/10.1007/978-3-031-93709-5_14)
+[![Conference](https://img.shields.io/badge/Conference-CVIP%202024-green.svg)](https://link.springer.com/chapter/10.1007/978-3-031-93709-5_14)
+[![Google Scholar](https://img.shields.io/badge/Google%20Scholar-Citations-orange.svg)](https://scholar.google.com/citations?view_op=view_citation&hl=en&user=ZgBCreQAAAAJ&citation_for_view=ZgBCreQAAAAJ:qjMakFHDy7sC)
+[![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/)
+[![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-red.svg)](https://pytorch.org/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
 End-to-end auto-segmentation pipeline for radiotherapy (RT) planning. DRAW reads DICOM CT studies, predicts organs-at-risk and clinical target volumes for multiple cancer sites, and writes back DICOM RT-Struct files for use in clinical treatment planning systems. Built on top of [nnU-Net v2](https://github.com/MIC-DKFZ/nnUNet) with custom logic for overlapping clinical labels and parallel multi-model inference.
@@ -20,8 +24,9 @@ The prostate-cancer configuration (`TSPrime`) is the published flagship and is t
 > **End-to-End Prostate Cancer Segmentation for RT Planning**
 > Sandip Dutta⋆, Surajit Kundu, Santam Chakraborty, Indranil Mallick, Sougata Maity, Aranya Sarkar, Soumyajit Das, Sanjoy Chatterjee, Rimpa Basu Achari, Moses Arunsingh, Tapesh Bhattacharyya, Jayanta Mukhopadhyay, Nishant Chakravorty.
 > *Computer Vision and Image Processing (CVIP), 2024.*
+> Springer CCIS, Vol. 2477, pp. 192–204.
 > IIT Kharagpur (Dept. of CSE) × Tata Medical Centre, Kolkata (Dept. of Radiation Oncology).
-> [[Google Scholar]](https://scholar.google.com/citations?view_op=view_citation&hl=en&user=ZgBCreQAAAAJ&citation_for_view=ZgBCreQAAAAJ:9yKSN-GCB0IC)
+> DOI: [10.1007/978-3-031-93709-5_14](https://doi.org/10.1007/978-3-031-93709-5_14) | [[Google Scholar]](https://scholar.google.com/citations?view_op=view_citation&hl=en&user=ZgBCreQAAAAJ&citation_for_view=ZgBCreQAAAAJ:qjMakFHDy7sC)
 > ⋆ Correspondence: sandip28dutta@gmail.com
 
 ## Headline results (prostate, TSPrime configuration)
@@ -115,7 +120,12 @@ If you use DRAW or its prostate configuration in academic work, please cite the 
   title     = {End-to-End Prostate Cancer Segmentation for RT Planning},
   author    = {Dutta, Sandip and Kundu, Surajit and Chakraborty, Santam and Mallick, Indranil and Maity, Sougata and Sarkar, Aranya and Das, Soumyajit and Chatterjee, Sanjoy and Achari, Rimpa Basu and Arunsingh, Moses and Bhattacharyya, Tapesh and Mukhopadhyay, Jayanta and Chakravorty, Nishant},
   booktitle = {Computer Vision and Image Processing (CVIP)},
-  year      = {2024}
+  series    = {Communications in Computer and Information Science},
+  volume    = {2477},
+  pages     = {192--204},
+  year      = {2024},
+  publisher = {Springer},
+  doi       = {10.1007/978-3-031-93709-5_14}
 }
 ```
 
