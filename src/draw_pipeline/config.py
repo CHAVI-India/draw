@@ -42,14 +42,30 @@ class RuntimeEnv:
     model_def_root: str
 
 
+_ENV_KEYS = ("DB_URL", "DB_NAME", "TABLE_NAME", "WATCH_DIR", "MODEL_DEF_ROOT")
+
+
 def load_env(path: str = ENV_FILE_NAME) -> RuntimeEnv:
-    """Read + schema-validate the env YAML into a ``RuntimeEnv``. Entrypoints only."""
-    with open(path) as stream:
-        raw = yaml.safe_load(stream)
+    """Build a ``RuntimeEnv`` from process environment variables, falling back to the
+    YAML file. Entrypoints only.
+
+    Container-friendly (12-factor): each key may be supplied as an OS env var
+    (``DB_URL`` etc.), which takes precedence. The ``env.draw.yml`` file is used for
+    any keys not present in the environment, so existing file-based deployments keep
+    working unchanged while docker-compose can inject config via ``environment:``.
+    """
+    from_env = {k: os.environ[k] for k in _ENV_KEYS if k in os.environ}
+
+    raw: dict = {}
+    if len(from_env) < len(_ENV_KEYS) and os.path.exists(path):
+        with open(path) as stream:
+            raw = yaml.safe_load(stream) or {}
+    raw.update(from_env)  # env vars win
+
     try:
         ENV_SCHEMA.validate(raw)
     except SchemaError:
-        log.error("Invalid env config at %s", path, exc_info=True)
+        log.error("Invalid env config (env vars + %s)", path, exc_info=True)
         raise
     return RuntimeEnv(
         db_url=raw["DB_URL"],

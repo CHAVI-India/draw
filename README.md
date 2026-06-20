@@ -220,6 +220,40 @@ uv run draw db upgrade     # apply migrations up to head
 uv run draw zip-model --model-name TSPrime --dataset-id 720
 ```
 
+## Docker (GPU)
+
+A GPU image and a single-machine `docker-compose.yml` run the continuous pipeline.
+**Model weights and DICOM are mounted from the host, never baked into the image** — the
+image stays reusable across sites and weight updates, and no PHI lands in an image layer.
+
+**Host prerequisites:** an NVIDIA driver new enough for CUDA 11.8 (≥ 520) and the
+[nvidia-container-toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/).
+
+```bash
+# Build and start the pipeline (GPU 0). Point the volumes at host paths:
+HOST_DICOM_DIR=/home/shared_space \
+HOST_DATA_DIR=./data \
+HOST_OUTPUT_DIR=./output \
+docker compose up -d --build
+
+docker compose logs -f pipeline   # follow logs
+```
+
+What the compose wires up:
+- **GPU**: reserves GPU 0 (one worker per physical GPU — correct on a single-GPU box).
+- **Config via env vars**: `DB_URL`, `WATCH_DIR`, etc. are injected through `environment:`
+  (these override `env.draw.yml`), so no env file needs to be mounted.
+- **Volumes**: DICOM ingest, `data/` (weights + nnU-Net dirs), and `output/`.
+- **SQLite** lives on the mounted `data/` volume; the schema auto-creates on startup.
+- **`restart: unless-stopped`** + the lease/reaper give clinical-grade self-healing.
+
+Run a one-shot command in the same image by overriding the entrypoint command:
+
+```bash
+docker compose run --rm pipeline predict \
+    --root-dir /app/incoming --preds-dir /app/output --dataset-name TSPrime --only-original
+```
+
 ## Development
 
 ```bash

@@ -1,0 +1,37 @@
+# DRAW continuous pipeline, single-machine (one hospital), one GPU.
+#
+# Weights, DICOM ingest, the SQLite queue, and outputs are all mounted from the host —
+# nothing PHI- or weights-related lives in the image. The schema auto-creates on
+# startup (ensure_schema), so there is no separate migration step for a fresh box.
+#
+# Prereqs on the host: NVIDIA driver (CUDA 11.8-capable) + nvidia-container-toolkit.
+# Usage:
+#   HOST_DICOM_DIR=/path/to/incoming HOST_DATA_DIR=./data docker compose up -d --build
+services:
+  pipeline:
+    build: .
+    image: draw:gpu
+    command: ["start-pipeline"]
+    restart: unless-stopped          # clinical uptime: auto-restart; reaper recovers in-flight studies
+    shm_size: "8gb"                  # nnU-Net dataloaders need a large /dev/shm
+    environment:
+      # Mirror env.draw.yml. WATCH_DIR/paths point at the mounted volumes below.
+      DB_URL: sqlite:////app/data/draw.db.sqlite
+      DB_NAME: draw
+      TABLE_NAME: dicom_log
+      WATCH_DIR: /app/incoming
+      MODEL_DEF_ROOT: config_yaml
+    volumes:
+      # DICOM ingest (PHI) — scanner/PACS drops studies here on the host.
+      - ${HOST_DICOM_DIR:-./incoming}:/app/incoming
+      # Model weights + nnU-Net data (multi-GB) — mounted read/write, never baked.
+      - ${HOST_DATA_DIR:-./data}:/app/data
+      # RT-Struct outputs the TPS picks up.
+      - ${HOST_OUTPUT_DIR:-./output}:/app/output
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ["0"]      # pin to GPU 0; one worker per physical GPU
+              capabilities: ["gpu"]

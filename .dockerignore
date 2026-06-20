@@ -1,0 +1,17 @@
+# Keep the image lean and PHI/weights out of build context.
+.git
+.venv
+bench_venv
+data/
+output/
+temp/
+logs/
+*.sqlite
+env.draw.yml
+documentation/
+assets/
+tests/
+**/__pycache__/
+*.pyc
+.pytest_cache
+.ruff_cache
