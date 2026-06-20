@@ -1,0 +1,84 @@
+[project]
+name = "draw"
+version = "0.2.0"
+description = "DRAW — Deep Radiotherapy Autosegmentation Workflow (nnU-Net based)"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+authors = [{ name = "CHAVI-India" }]
+
+# Core runtime deps shared by every entrypoint. Deliberately EXCLUDES torch/nnUNet
+# (see the `gpu` extra) so draw_core + draw_conversion install and test without a GPU.
+dependencies = [
+    "click>=8.1",
+    "PyYAML>=6.0",
+    "schema>=0.7.5",
+]
+
+[project.optional-dependencies]
+# DICOM <-> NIfTI conversion stack. Pure I/O transformation, no GPU, no DB.
+conversion = [
+    "numpy>=1.26",
+    "nibabel>=5.1",
+    "pydicom>=2.4",
+    "SimpleITK>=2.3",
+    "dcmrtstruct2nii==5",
+    "rt-utils>=1.2.7",
+    "isal>=1.6",            # faster gzip (python-isal) — benchmarked 2.3-2.9x vs zlib
+]
+
+# Persistence + watcher scaffolding for the on-prem continuous pipeline.
+pipeline = [
+    "SQLAlchemy>=2.0.21",
+    "alembic>=1.13",
+    "watchdog>=3.0",
+    "retry>=0.9.2",
+    "pandas>=2.1",
+]
+
+# GPU inference. Installed only on machines that actually run nnU-Net.
+# torch is intentionally unpinned here; install the right CUDA wheel per host.
+gpu = [
+    "torch",
+    "torchvision",
+    "torchaudio",
+    "nnunetv2 @ git+https://github.com/Dutta-SD/nnunet_draw.git@draw_main",
+]
+
+[dependency-groups]
+# Dev tooling lives in a uv dependency-group (not shipped to runtime).
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "ruff>=0.6",
+]
+
+[project.scripts]
+draw = "draw_pipeline.cli.main:cli"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.metadata]
+# Allow the git direct reference in the optional `gpu` extra (nnunet fork).
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = [
+    "src/draw_contracts",
+    "src/draw_core",
+    "src/draw_conversion",
+    "src/draw_pipeline",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]

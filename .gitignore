@@ -288,3 +288,8 @@ logs/**
 !output/.gitkeep
 !temp/.gitkeep
 !data/.gitkeep
+
+# uv / venv
+.venv/
+bench_venv/
+uv.lock.bak
