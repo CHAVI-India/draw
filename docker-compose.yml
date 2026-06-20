@@ -1,37 +1,48 @@
-# DRAW continuous pipeline, single-machine (one hospital), one GPU.
+# DRAW continuous pipeline — always-on, crash-recoverable GPU container (one hospital).
 #
-# Weights, DICOM ingest, the SQLite queue, and outputs are all mounted from the host —
-# nothing PHI- or weights-related lives in the image. The schema auto-creates on
-# startup (ensure_schema), so there is no separate migration step for a fresh box.
+# Pulls a prebuilt image by default (set DRAW_IMAGE); falls back to building locally.
+# Weights, DICOM, the SQLite queue, outputs, and logs are mounted from the host — no
+# PHI or weights in the image. Schema auto-creates on startup; the lease/reaper recovers
+# any study left in-flight by a killed container.
 #
-# Prereqs on the host: NVIDIA driver (CUDA 11.8-capable) + nvidia-container-toolkit.
-# Usage:
-#   HOST_DICOM_DIR=/path/to/incoming HOST_DATA_DIR=./data docker compose up -d --build
+# Config comes from a .env file next to this compose file (see deploy/). Usage:
+#   docker compose up -d
 services:
   pipeline:
-    build: .
-    image: draw:gpu
+    image: ${DRAW_IMAGE:-draw:gpu}
+    build: .                          # used only if the image isn't present locally
+    pull_policy: ${DRAW_PULL_POLICY:-missing}
     command: ["start-pipeline"]
-    restart: unless-stopped          # clinical uptime: auto-restart; reaper recovers in-flight studies
-    shm_size: "8gb"                  # nnU-Net dataloaders need a large /dev/shm
+    restart: unless-stopped           # always-on; auto-restart on crash/reboot
+    shm_size: "8gb"                   # nnU-Net dataloaders need a large /dev/shm
     environment:
-      # Mirror env.draw.yml. WATCH_DIR/paths point at the mounted volumes below.
       DB_URL: sqlite:////app/data/draw.db.sqlite
       DB_NAME: draw
       TABLE_NAME: dicom_log
       WATCH_DIR: /app/incoming
       MODEL_DEF_ROOT: config_yaml
+      # File logging inside the container -> mounted ./logs volume (30-day retention,
+      # gzip-compressed daily rotation, handled by the app).
+      DRAW_LOG_FILE: /app/logs/draw.log
+      DRAW_LOG_LEVEL: ${DRAW_LOG_LEVEL:-INFO}
     volumes:
-      # DICOM ingest (PHI) — scanner/PACS drops studies here on the host.
-      - ${HOST_DICOM_DIR:-./incoming}:/app/incoming
-      # Model weights + nnU-Net data (multi-GB) — mounted read/write, never baked.
-      - ${HOST_DATA_DIR:-./data}:/app/data
-      # RT-Struct outputs the TPS picks up.
-      - ${HOST_OUTPUT_DIR:-./output}:/app/output
+      # WATCH_DIR is some external folder the scanner/PACS writes to (read-only here).
+      - ${WATCH_DIR:?set WATCH_DIR in .env}:/app/incoming:ro
+      # The rest live inside the deploy folder (default ./data, ./output, ./logs).
+      - ${DATA_DIR:-./data}:/app/data
+      - ${OUTPUT_DIR:-./output}:/app/output
+      - ${LOG_DIR:-./logs}:/app/logs
     deploy:
       resources:
         reservations:
           devices:
             - driver: nvidia
-              device_ids: ["0"]      # pin to GPU 0; one worker per physical GPU
+              device_ids: ["${DRAW_GPU_ID:-0}"]
               capabilities: ["gpu"]
+    # Cap Docker's own json log so stdout duplication can't fill the disk (the app's
+    # file logs are the retained copy).
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "3"

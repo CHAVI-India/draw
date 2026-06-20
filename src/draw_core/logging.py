@@ -35,20 +35,38 @@ def get_logger(name: str | None = None) -> logging.Logger:
     return logging.getLogger(name if name else "draw")
 
 
+def _gzip_rotator(source: str, dest: str) -> None:
+    """Rotation hook: gzip the rotated file (yesterday's log) and drop the original.
+
+    Runs once per day at midnight rotation, so a day-old log is compressed and the
+    uncompressed copy removed — i.e. only today's log is uncompressed.
+    """
+    import gzip
+    import shutil
+
+    with open(source, "rb") as f_in, gzip.open(f"{dest}.gz", "wb") as f_out:
+        shutil.copyfileobj(f_in, f_out)
+    os.remove(source)
+
+
 def configure_logging(
     level: str | int = "INFO",
     *,
     logfile: str | None = None,
     stream: bool = True,
+    retention_days: int = 30,
+    compress: bool = True,
 ) -> None:
     """Configure the root logger. Call once from an entrypoint (idempotent).
 
     Args:
         level: root log level (name or numeric).
-        logfile: if set, also write to this path with daily rotation (7 backups).
-            The parent directory is created if needed. Omit in containers — log to
-            stdout and let the platform (CloudWatch/journald/ELK) handle the rest.
-        stream: emit to stdout (default True).
+        logfile: if set, also write to this path with daily rotation. The parent
+            directory is created if needed. In a container, point this at a mounted
+            volume so logs survive restarts (and Docker still captures stdout too).
+        stream: emit to stdout (default True) — Docker/journald capture this.
+        retention_days: how many rotated daily logs to keep (default 30).
+        compress: gzip rotated logs (default True) so only today's log is uncompressed.
     """
     root = logging.getLogger()
     root.setLevel(level)
@@ -70,8 +88,15 @@ def configure_logging(
     if logfile:
         os.makedirs(os.path.dirname(logfile) or ".", exist_ok=True)
         fh = logging.handlers.TimedRotatingFileHandler(
-            logfile, when="midnight", interval=1, backupCount=7, encoding="utf-8"
+            logfile,
+            when="midnight",
+            interval=1,
+            backupCount=retention_days,  # keep N days of rotated logs, then delete
+            encoding="utf-8",
         )
+        if compress:
+            fh.rotator = _gzip_rotator
+            fh.namer = lambda name: name  # _gzip_rotator appends .gz to dest itself
         fh.setFormatter(formatter)
         fh._draw_managed = True  # type: ignore[attr-defined]
         root.addHandler(fh)

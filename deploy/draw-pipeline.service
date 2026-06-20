@@ -1,0 +1,21 @@
+[Unit]
+# DRAW continuous pipeline as an always-on systemd service (Linux).
+# Installed by deploy/install-linux.sh, which substitutes @@DEPLOY_DIR@@.
+# All config comes from the .env file in the deploy folder (Compose loads it).
+Description=DRAW continuous auto-segmentation pipeline (docker compose)
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# The deploy folder holding .env, docker-compose.yml, data/, logs/.
+WorkingDirectory=@@DEPLOY_DIR@@
+ExecStartPre=-/usr/bin/docker compose pull
+ExecStart=/usr/bin/docker compose up
+ExecStop=/usr/bin/docker compose down
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

@@ -25,9 +25,24 @@ from draw_pipeline.config import load_env
 log = get_logger(__name__)
 
 
+def _setup_logging() -> None:
+    """Configure logging from env vars so deployments control it without code changes.
+
+    DRAW_LOG_FILE  - if set, also write rotating daily logs there (30-day retention,
+                     gzip-compressed rotations). Point it at a mounted volume in Docker.
+    DRAW_LOG_LEVEL - log level (default INFO).
+    """
+    import os
+
+    configure_logging(
+        level=os.environ.get("DRAW_LOG_LEVEL", "INFO"),
+        logfile=os.environ.get("DRAW_LOG_FILE"),
+    )
+
+
 def _bootstrap() -> tuple[object, ModelRegistry]:
     """Configure logging and load the env + model registry. Entrypoint helper."""
-    configure_logging()
+    _setup_logging()
     env = load_env()
     registry = ModelRegistry.from_yaml_dir(env.model_def_root)
     return env, registry
@@ -125,7 +140,7 @@ def cli_start_pipeline():
     from draw_pipeline.pipeline.start import start_continuous_prediction
 
     multiprocessing.freeze_support()
-    configure_logging()
+    _setup_logging()
     env = load_env()
     config = CoreConfig()
     start_continuous_prediction(env, config)
@@ -141,7 +156,7 @@ def db_group():
 def cli_db_upgrade(revision):
     from draw_pipeline import migrations
 
-    configure_logging()
+    _setup_logging()
     migrations.upgrade(load_env().db_url, revision)
 
 
@@ -150,7 +165,7 @@ def cli_db_upgrade(revision):
 def cli_db_downgrade(revision):
     from draw_pipeline import migrations
 
-    configure_logging()
+    _setup_logging()
     migrations.downgrade(load_env().db_url, revision)
 
 
@@ -158,7 +173,7 @@ def cli_db_downgrade(revision):
 def cli_db_current():
     from draw_pipeline import migrations
 
-    configure_logging()
+    _setup_logging()
     migrations.current(load_env().db_url)
 
 

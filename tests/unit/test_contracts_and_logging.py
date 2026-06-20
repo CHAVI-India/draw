@@ -43,3 +43,39 @@ def test_configure_logging_writes_file(tmp_path):
         h.flush()
     assert logfile.exists()
     assert "to-file" in logfile.read_text()
+
+
+def test_file_handler_uses_retention_and_gzip_rotation(tmp_path):
+    import logging.handlers
+
+    from draw_core.logging import _gzip_rotator
+
+    logfile = tmp_path / "draw.log"
+    configure_logging(
+        level="INFO", logfile=str(logfile), stream=False, retention_days=30, compress=True
+    )
+    handlers = [
+        h
+        for h in logging.getLogger().handlers
+        if isinstance(h, logging.handlers.TimedRotatingFileHandler)
+    ]
+    assert len(handlers) == 1
+    fh = handlers[0]
+    assert fh.backupCount == 30          # 30-day retention
+    assert fh.when == "MIDNIGHT"         # daily rotation
+    assert fh.rotator is _gzip_rotator   # rotated files are gzipped
+
+
+def test_gzip_rotator_compresses_and_removes_source(tmp_path):
+    import gzip
+
+    from draw_core.logging import _gzip_rotator
+
+    src = tmp_path / "draw.log.2026-01-01"
+    src.write_text("yesterday")
+    _gzip_rotator(str(src), str(src))
+
+    assert not src.exists()                          # original removed
+    gz = tmp_path / "draw.log.2026-01-01.gz"
+    assert gz.exists()
+    assert gzip.open(gz, "rt").read() == "yesterday"  # content preserved, compressed
