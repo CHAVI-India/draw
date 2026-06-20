@@ -149,6 +149,77 @@ class NNUNetV2Adapter:
 
     @staticmethod
     def _run_subprocess(run_args, env=None) -> None:
+        """Run an nnU-Net CLI command with detailed, cross-platform diagnostics.
+
+        The legacy version captured stdout/stderr into a PIPE but never read it, so a
+        failing child raised a bare ``CalledProcessError`` with no detail ("blows up
+        for no reason"). Here we capture and LOG the full output on failure, force
+        UTF-8 + unbuffered I/O (Windows console defaults to cp1252 and block-buffers
+        non-TTY output, hiding the real error), and report timing + exit code.
+        """
+        import os
+        import shutil
+        import time
+
         run_args = [str(a) for a in run_args]
-        log.info("nnU-Net: %s", " ".join(run_args))
-        subprocess.run(run_args, stdin=subprocess.DEVNULL, check=True, env=env)
+        program = run_args[0]
+
+        # Child env: inherit, layer any overrides, force unbuffered UTF-8 so the real
+        # traceback (esp. from nnU-Net's spawned worker processes on Windows) survives.
+        child_env = {**os.environ, **(env or {})}
+        child_env.setdefault("PYTHONUNBUFFERED", "1")
+        child_env.setdefault("PYTHONIOENCODING", "utf-8")
+
+        resolved = shutil.which(program)
+        log.info("nnU-Net: starting %s", program)
+        log.info("nnU-Net: full command: %s", " ".join(run_args))
+        log.debug("nnU-Net: resolved executable: %s", resolved or "<NOT ON PATH>")
+        log.debug(
+            "nnU-Net: env nnUNet_raw=%s nnUNet_results=%s CUDA_VISIBLE_DEVICES=%s compile=%s",
+            child_env.get("nnUNet_raw"),
+            child_env.get("nnUNet_results"),
+            child_env.get("CUDA_VISIBLE_DEVICES", "<unset>"),
+            child_env.get("nnUNet_compile", "<unset>"),
+        )
+        if resolved is None:
+            log.error(
+                "nnU-Net: '%s' not found on PATH. Is the 'gpu' extra installed in this "
+                "environment? PATH=%s", program, child_env.get("PATH", ""),
+            )
+
+        start = time.perf_counter()
+        try:
+            proc = subprocess.run(
+                run_args,
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,  # merge so ordering is preserved in one stream
+                text=True,
+                encoding="utf-8",
+                errors="replace",  # never crash the launcher on odd bytes
+                env=child_env,
+            )
+        except FileNotFoundError:
+            log.error("nnU-Net: executable '%s' not found (FileNotFoundError)", program)
+            raise
+        except OSError:
+            log.error("nnU-Net: OS error launching '%s'", program, exc_info=True)
+            raise
+
+        elapsed = time.perf_counter() - start
+        output = proc.stdout or ""
+
+        if proc.returncode != 0:
+            log.error("nnU-Net: %s FAILED (exit %d) after %.1fs", program, proc.returncode, elapsed)
+            log.error("nnU-Net: full command was: %s", " ".join(run_args))
+            log.error(
+                "nnU-Net: ---- captured output (stdout+stderr) ----\n%s\n---- end output ----",
+                output.strip() or "<no output captured>",
+            )
+            # Surface the tail prominently — the actionable error is usually last.
+            tail = "\n".join(output.strip().splitlines()[-15:])
+            log.error("nnU-Net: last 15 lines:\n%s", tail or "<empty>")
+            raise subprocess.CalledProcessError(proc.returncode, run_args, output)
+
+        log.info("nnU-Net: %s completed in %.1fs", program, elapsed)
+        log.debug("nnU-Net: output:\n%s", output.strip() or "<no output>")
