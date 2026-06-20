@@ -28,6 +28,7 @@ class QueueItem:
     status: JobStatus = JobStatus.INIT
     output_path: str | None = None
     item_id: int | None = None
+    attempts: int = 0
 
 
 @runtime_checkable
@@ -55,3 +56,13 @@ class JobQueue(Protocol):
 
     def mark_failed(self, series_name: str, error: str) -> None:
         """Mark a study failed (e.g. inference error)."""
+
+    def requeue_expired(self, lease_seconds: int, max_attempts: int) -> int:
+        """Crash recovery: re-queue items stuck in-progress past ``lease_seconds``.
+
+        If a worker is killed mid-prediction, its claimed items would otherwise sit
+        in STARTED forever. This returns expired leases to INIT (so another worker
+        retries them) until ``max_attempts`` is exceeded, after which they go to
+        FAILED. Returns the number of items acted on. Idempotent; safe to call on a
+        timer from any worker.
+        """

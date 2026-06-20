@@ -27,6 +27,12 @@ OUTPUT_DIR = "output"
 PREDICTION_COOLDOWN_SECS = 30
 GPU_RECHECK_TIME_SECONDS = 10
 
+# Crash recovery: a study claimed by a worker that then dies sits in STARTED. The
+# reaper returns such studies to the queue once their lease expires. The lease must be
+# comfortably longer than a real prediction so we never re-queue work still running.
+LEASE_SECONDS = 3600
+MAX_ATTEMPTS = 3
+
 
 def send_to_external_server(queue: JobQueue, model_name: str) -> None:
     # TODO(draw-pipeline): wire the actual external-server upload (StorageBackend).
@@ -92,6 +98,12 @@ def task_model_prediction(
     model_name_generator = cycle(registry.names())
     while model_name := next(model_name_generator):
         try:
+            # Recover studies stranded in STARTED by a previously-killed worker before
+            # looking for new work, so a crash/restart self-heals.
+            requeued = queue.requeue_expired(LEASE_SECONDS, MAX_ATTEMPTS)
+            if requeued:
+                log.warning("Reaper re-queued/failed %d stranded studies", requeued)
+
             gpu_memory_free = get_gpu_memory()
             any_model_ran = False
             if gpu_memory_free >= required_free_mb:

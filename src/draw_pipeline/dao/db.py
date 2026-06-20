@@ -15,6 +15,8 @@ on SQLite, which is single-writer anyway; it does real work on Postgres/MySQL.)
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta
+
 from sqlalchemy import Engine, exists, select, update
 from sqlalchemy.orm import Session
 
@@ -35,6 +37,7 @@ def _to_item(row: DicomLog) -> QueueItem:
         status=JobStatus(row.status.value),
         output_path=row.output_path,
         item_id=row.id,
+        attempts=row.attempts or 0,
     )
 
 
@@ -70,8 +73,8 @@ class SqlJobQueue:
 
     def exists(self, series_name: str) -> bool:
         with Session(self.engine) as sess:
-            q = sess.query(exists().where(DicomLog.series_name == series_name))
-            return bool(sess.execute(q).scalar())
+            stmt = select(exists().where(DicomLog.series_name == series_name))
+            return bool(sess.execute(stmt).scalar())
 
     # ---------------------------------------------------------------- consumer
     def claim(self, model: str, limit: int | None = None) -> list[QueueItem]:
@@ -88,8 +91,11 @@ class SqlJobQueue:
                     .with_for_update(skip_locked=True)
                 )
                 rows = sess.scalars(stmt).all()
+                claimed_at = datetime.now()
                 for row in rows:
                     row.status = Status.STARTED
+                    row.claimed_at = claimed_at
+                    row.attempts = (row.attempts or 0) + 1
                 sess.flush()
                 items = [_to_item(row) for row in rows]
                 sess.commit()
@@ -98,6 +104,46 @@ class SqlJobQueue:
         except Exception:
             log.error("Error while claiming for %s", model, exc_info=True)
             return []
+
+    def requeue_expired(
+        self, lease_seconds: int, max_attempts: int, now: datetime | None = None
+    ) -> int:
+        """Re-queue (or fail) items whose lease expired because a worker died.
+
+        ``now`` is injectable for deterministic tests; defaults to the wall clock.
+        """
+        now = now or datetime.now()
+        cutoff = now - timedelta(seconds=lease_seconds)
+        acted = 0
+        try:
+            with Session(self.engine) as sess:
+                stmt = (
+                    select(DicomLog)
+                    .where(DicomLog.status == Status.STARTED)
+                    .where(DicomLog.claimed_at.is_not(None))
+                    .where(DicomLog.claimed_at < cutoff)
+                    .with_for_update(skip_locked=True)
+                )
+                for row in sess.scalars(stmt).all():
+                    if (row.attempts or 0) >= max_attempts:
+                        row.status = Status.FAILED
+                        log.error(
+                            "Series %s exceeded %d attempts; marking FAILED",
+                            row.series_name, max_attempts,
+                        )
+                    else:
+                        row.status = Status.INIT
+                        row.claimed_at = None
+                        log.warning(
+                            "Re-queuing stranded series %s (attempt %d)",
+                            row.series_name, row.attempts,
+                        )
+                    acted += 1
+                sess.commit()
+            return acted
+        except Exception:
+            log.error("Error while requeuing expired leases", exc_info=True)
+            return 0
 
     def list_by_status(
         self, model: str, status: JobStatus, limit: int | None = None

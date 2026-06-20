@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import BigInteger, Column, DateTime, Enum, String
+from sqlalchemy import BigInteger, Column, DateTime, Enum, Integer, String
 from sqlalchemy.dialects import mysql, postgresql, sqlite
 from sqlalchemy.sql import func
 
@@ -43,12 +43,18 @@ class DicomLog(Base):
         server_default=func.current_timestamp(),
         nullable=False,
     )
+    # Lease bookkeeping for crash recovery (visibility-timeout pattern). When a worker
+    # claims a row it stamps claimed_at; a reaper re-queues rows whose lease has expired
+    # (i.e. the worker died mid-prediction) so work is never stranded in STARTED.
+    claimed_at = Column("claimed_at", DateTime, nullable=True)
+    attempts = Column("attempts", Integer, nullable=False, default=0, server_default="0")
 
     def __repr__(self):
         return (
             f"DicomLog(id={self.id}, series_name={self.series_name}, "
             f"input_path={self.input_path}, output_path={self.output_path}, "
-            f"status={self.status}, model={self.model}, created_on={self.created_on})"
+            f"status={self.status}, model={self.model}, created_on={self.created_on}, "
+            f"claimed_at={self.claimed_at}, attempts={self.attempts})"
         )
 
     def get_attr_dict(self):

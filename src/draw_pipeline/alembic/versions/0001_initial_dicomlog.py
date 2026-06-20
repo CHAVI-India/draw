@@ -51,6 +51,9 @@ def upgrade() -> None:
             server_default=sa.text("(CURRENT_TIMESTAMP)"),
             nullable=False,
         ),
+        # Lease bookkeeping for crash recovery (visibility-timeout pattern).
+        sa.Column("claimed_at", sa.DateTime(), nullable=True),
+        sa.Column("attempts", sa.Integer(), server_default="0", nullable=False),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("series_name"),
     )

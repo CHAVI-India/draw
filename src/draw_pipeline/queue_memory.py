@@ -24,6 +24,7 @@ class InMemoryJobQueue:
 
     def __init__(self) -> None:
         self._items: dict[str, QueueItem] = {}
+        self._claimed_at: dict[str, float] = {}  # series_name -> monotonic-ish stamp
         self._lock = threading.Lock()
         self._seq = 0
 
@@ -57,8 +58,11 @@ class InMemoryJobQueue:
             )[:limit]
             claimed = []
             for item in pending:
-                started = QueueItem(**{**item.__dict__, "status": JobStatus.STARTED})
+                started = QueueItem(
+                    **{**item.__dict__, "status": JobStatus.STARTED, "attempts": item.attempts + 1}
+                )
                 self._items[item.series_name] = started
+                self._claimed_at[item.series_name] = self._now
                 claimed.append(started)
             return claimed
 
@@ -79,6 +83,42 @@ class InMemoryJobQueue:
     def mark_failed(self, series_name: str, error: str) -> None:
         log.error("Job failed for %s: %s", series_name, error)
         self._update(series_name, JobStatus.FAILED)
+
+    def requeue_expired(self, lease_seconds: int, max_attempts: int) -> int:
+        """Crash recovery for the in-memory queue (single-process use).
+
+        Uses a logical clock (``advance``) so tests are deterministic rather than
+        sleeping. Mirrors the SQL semantics: expired STARTED leases go back to INIT,
+        or to FAILED once attempts exceed ``max_attempts``.
+        """
+        acted = 0
+        with self._lock:
+            for name, item in list(self._items.items()):
+                if item.status != JobStatus.STARTED:
+                    continue
+                stamp = self._claimed_at.get(name)
+                if stamp is None or (self._now - stamp) < lease_seconds:
+                    continue
+                if item.attempts >= max_attempts:
+                    self._items[name] = QueueItem(
+                        **{**item.__dict__, "status": JobStatus.FAILED}
+                    )
+                else:
+                    self._items[name] = QueueItem(
+                        **{**item.__dict__, "status": JobStatus.INIT}
+                    )
+                    self._claimed_at.pop(name, None)
+                acted += 1
+        return acted
+
+    # --- logical clock (test seam: avoids real sleeps; see testing-skill time rule) ---
+    @property
+    def _now(self) -> float:
+        return getattr(self, "_clock", 0.0)
+
+    def advance(self, seconds: float) -> None:
+        """Advance the logical clock (test helper; emulates time passing)."""
+        self._clock = self._now + seconds
 
     def _update(self, series_name: str, status: JobStatus, output_path: str | None = None) -> None:
         with self._lock:
