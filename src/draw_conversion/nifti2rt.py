@@ -42,30 +42,38 @@ def make_mask_from_rt(nifti_file_path: str) -> np.ndarray:
     return np.transpose(np_mask, [1, 0, 2])
 
 
-def build_rt_struct(dicom_dir: str, rt_path: str):
-    if os.path.exists(rt_path):
-        return RTStructBuilder.create_from(dicom_dir, rt_path)
-    return RTStructBuilder.create_new(dicom_dir)
-
-
 def convert_multilabel_nifti_to_rtstruct(
     nifti_file_path: str,
     dicom_dir: str,
     save_dir: str,
     label_to_name_map: dict[int, str],
 ) -> str:
-    """Write one multilabel NIfTI as a DICOM RT-Struct under ``save_dir``."""
+    """Write one multilabel NIfTI as a DICOM RT-Struct under ``save_dir``.
+
+    Idempotent: the output path is deterministic (``save_dir`` is keyed by
+    SeriesInstanceUID upstream) and we always build a FRESH RT-Struct, write it to a
+    temp file, then atomically ``os.replace`` it into place. So re-running the same
+    study (e.g. after a crash + reaper retry) overwrites its own output with an
+    equivalent file instead of appending duplicate ROIs to a stale one. This is what
+    makes at-least-once processing effectively-once.
+    """
     os.makedirs(save_dir, exist_ok=True)
     rt_path = os.path.join(save_dir, RT_DEFAULT_FILE_NAME)
+    # rt_utils appends ".dcm" if the path lacks it, so keep the temp name ending in
+    # ".dcm" (".tmp.dcm") to control the exact filename it writes.
+    tmp_path = f"{rt_path}.tmp.dcm"
 
-    rtstruct = build_rt_struct(dicom_dir, rt_path)
+    # Always create_new (never create_from an existing RT) so a retry does not stack
+    # ROIs on top of a previous run's output.
+    rtstruct = RTStructBuilder.create_new(dicom_dir)
     np_mask = make_mask_from_rt(nifti_file_path)
 
     for idx, name in label_to_name_map.items():
         log.info("Processing mask %s", name)
         rtstruct.add_roi(mask=(np_mask == idx), name=name)
 
-    rtstruct.save(rt_path)
+    rtstruct.save(tmp_path)
+    os.replace(tmp_path, rt_path)  # atomic on POSIX; overwrites any prior output
     log.info("RT-Struct for %s saved at %s", nifti_file_path, rt_path)
     return save_dir
 
