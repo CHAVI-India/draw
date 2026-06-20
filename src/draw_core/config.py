@@ -30,3 +30,11 @@ class CoreConfig:
     # Inference behaviour
     disable_tta: bool = True
     checkpoint_name: str = "checkpoint_best.pth"
+
+    # GPU perf levers 1/2/5/8: when True, segment_study uses an in-process resident
+    # nnUNetPredictor (weights loaded once, reused across submodels and studies)
+    # instead of the cold-start subprocess CLI. Off by default so the proven
+    # subprocess path stays the default until validated on real GPU hardware.
+    use_warm_predictor: bool = False
+    # Lever 7: pin the resident predictor to a specific GPU / MIG slice (None = default).
+    gpu_id: int | None = None

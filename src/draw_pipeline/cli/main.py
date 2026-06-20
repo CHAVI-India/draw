@@ -78,7 +78,9 @@ def cli_prepare_and_train(
 @click.option("--root-dir", "-r", type=click.Path(exists=True, file_okay=False, dir_okay=True, readable=True, writable=True), required=True, help="Directory containing other DICOM parent directories")
 @click.option("--dataset-name", "-n", type=str, required=True, help="Name of the dataset")
 @click.option("--only-original", is_flag=True, help="Convert only original DICOM. Set this to disable RTStruct file searching and parsing")
-def cli_predict(preds_dir, dataset_name, root_dir, only_original):
+@click.option("--warm", is_flag=True, help="Use the in-process resident predictor (GPU perf: load weights once, reuse across submodels). Requires the 'gpu' extra.")
+@click.option("--gpu-id", type=int, default=None, help="Pin inference to a specific GPU / MIG slice (sets CUDA_VISIBLE_DEVICES).")
+def cli_predict(preds_dir, dataset_name, root_dir, only_original, warm, gpu_id):
     import os
 
     from draw_contracts.sink import NullStatusSink
@@ -87,7 +89,7 @@ def cli_predict(preds_dir, dataset_name, root_dir, only_original):
 
     _env, registry = _bootstrap()
     model = _resolve_model(registry, dataset_name)
-    config = CoreConfig()
+    config = CoreConfig(use_warm_predictor=warm, gpu_id=gpu_id)
     adapter = NNUNetV2Adapter(config)
     dicom_dirs = [f.path for f in os.scandir(root_dir) if f.is_dir()]
     segment_study(

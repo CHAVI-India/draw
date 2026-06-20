@@ -23,9 +23,9 @@ from datetime import datetime
 
 from draw_contracts.dto import SegmentationResult, SeriesResult
 from draw_conversion.nifti2rt import convert_nifti_outputs_to_dicom
+from draw_core.accessor.predictor import Predictor, SubprocessPredictor
 from draw_core.config import CoreConfig
 from draw_core.constants import SAMPLE_NUMBER_ZFILL
-from draw_core.evaluate.evaluate import generate_labels_on_data
 from draw_core.logging import get_logger
 from draw_core.models import ModelConfig, SubModel
 from draw_core.postprocess.postprocess import postprocess_folder
@@ -40,12 +40,24 @@ def _remove(path: str, log: logging.Logger) -> None:
         shutil.rmtree(path)
 
 
+def _build_predictor(adapter, config: CoreConfig, log: logging.Logger) -> Predictor:
+    """Pick the inference backend from config. Warm import is lazy (keeps core
+    torch-free unless the warm path is actually requested)."""
+    if config.use_warm_predictor:
+        from draw_core.accessor.warm_predictor import WarmPredictor
+
+        log.info("Using warm in-process predictor (GPU levers 1/2/5/8)")
+        return WarmPredictor(config, gpu_id=config.gpu_id)
+    return SubprocessPredictor(adapter)
+
+
 def _predict_one_submodel(
     submodel: SubModel,
     dicom_dirs: list[str],
     preds_dir: str,
     parent_model_name: str,
     only_original: bool,
+    predictor: Predictor,
     adapter,
     config: CoreConfig,
     log: logging.Logger,
@@ -78,9 +90,8 @@ def _predict_one_submodel(
     tr_images = os.path.join(dataset_dir, "imagesTr")
     model_pred_dir = os.path.join(preds_dir, parent_model_name, str(dataset_id), "modelpred")
     _remove(model_pred_dir, log)
-    generate_labels_on_data(
-        tr_images, dataset_id, model_pred_dir, submodel.config, submodel.trainer_name, adapter
-    )
+    os.makedirs(model_pred_dir, exist_ok=True)
+    predictor.predict_submodel(submodel, tr_images, model_pred_dir)
 
     if submodel.postprocess is not None:
         op_folder = os.path.join(preds_dir, parent_model_name, str(dataset_id), "postprocess")
@@ -103,21 +114,30 @@ def segment_study(
     result_sink,
     logger: logging.Logger | None = None,
     only_original: bool = True,
+    predictor: Predictor | None = None,
 ) -> SegmentationResult:
     """Segment a set of DICOM study directories with ``model`` and record results.
 
     For each submodel: convert each DICOM dir to an nnU-Net dataset, run inference,
     optionally postprocess, then convert predicted NIfTIs to RT-Structs. Each
     produced series is reported to ``result_sink``. Returns the aggregate result.
+
+    A single ``predictor`` is built once and reused across all submodels — with the
+    warm predictor that collapses repeated model loads into one (GPU perf lever 2).
+    If not injected, it is chosen from ``config.use_warm_predictor``.
     """
     log = logger or _default_log
     exp_number = datetime.now().strftime("%Y-%m-%d.%H-%M")
     final_output_dir = os.path.join(preds_dir, model.name, "results")
     all_series: list[SeriesResult] = []
 
+    if predictor is None:
+        predictor = _build_predictor(adapter, config, log)
+
     for submodel in model.submodels.values():
         model_pred_dir = _predict_one_submodel(
-            submodel, dicom_dirs, preds_dir, model.name, only_original, adapter, config, log
+            submodel, dicom_dirs, preds_dir, model.name, only_original,
+            predictor, adapter, config, log,
         )
         dataset_dir = os.path.normpath(
             f"{config.nnunet_raw_dir}/Dataset{submodel.dataset_id}_{submodel.name}"

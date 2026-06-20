@@ -27,9 +27,10 @@ log = get_logger(__name__)
 class WarmPredictor:
     """Caches one nnUNetPredictor per model folder for the process lifetime."""
 
-    def __init__(self, config: CoreConfig, gpu_id: int | None = None):
+    def __init__(self, config: CoreConfig, gpu_id: int | None = None, fold: str = "0"):
         self.config = config
         self.gpu_id = gpu_id
+        self.fold = fold
         self._cache: dict[str, Any] = {}
         self._tuned = False
 
@@ -78,20 +79,17 @@ class WarmPredictor:
         self._cache[model_folder] = predictor
         return predictor
 
-    def predict_folder(
-        self,
-        samples_dir: str,
-        output_dir: str,
-        model_config: str,
-        dataset_id: str,
-        model_name: str,
-        fold: str,
-        trainer_name: str = "nnUNetTrainer",
-    ) -> None:
-        """Run inference with a resident predictor (no per-call model reload)."""
+    def predict_submodel(self, submodel, samples_dir: str, output_dir: str) -> None:
+        """Run inference for a SubModel with a resident predictor (Predictor seam).
+
+        Reusing the same WarmPredictor instance across a study's submodels is what
+        collapses repeated cold model loads into one (GPU perf lever 2).
+        """
         os.makedirs(output_dir, exist_ok=True)
-        model_folder = self._model_folder(dataset_id, model_name, trainer_name, model_config)
-        predictor = self._get_predictor(model_folder, fold)
+        model_folder = self._model_folder(
+            str(submodel.dataset_id), submodel.name, submodel.trainer_name, submodel.config
+        )
+        predictor = self._get_predictor(model_folder, self.fold)
         predictor.predict_from_files(
             samples_dir,
             output_dir,
