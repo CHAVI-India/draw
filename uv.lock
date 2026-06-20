@@ -787,8 +787,6 @@ gpu = [
 ]
 pipeline = [
     { name = "alembic" },
-    { name = "pandas", version = "2.3.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "pandas", version = "3.0.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "retry" },
     { name = "sqlalchemy" },
     { name = "watchdog" },
@@ -810,7 +808,6 @@ requires-dist = [
     { name = "nibabel", marker = "extra == 'conversion'", specifier = ">=5.1" },
     { name = "nnunetv2", marker = "extra == 'gpu'", git = "https://github.com/Dutta-SD/nnunet_draw.git?rev=draw_main" },
     { name = "numpy", marker = "extra == 'conversion'", specifier = ">=1.26" },
-    { name = "pandas", marker = "extra == 'pipeline'", specifier = ">=2.1" },
     { name = "pydicom", marker = "extra == 'conversion'", specifier = ">=2.4" },
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "retry", marker = "extra == 'pipeline'", specifier = ">=0.9.2" },

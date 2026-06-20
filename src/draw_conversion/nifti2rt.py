@@ -19,9 +19,9 @@ import nibabel as nib
 import numpy as np
 from rt_utils import RTStructBuilder
 
+from draw_contracts.dto import SeriesResult
 from draw_conversion._gzip_fast import enable_fast_gzip
 from draw_conversion.dicom_io import get_series_instance_uid
-from draw_contracts.dto import SeriesResult
 from draw_core.constants import (
     DEFAULT_DATASET_TAG,
     RT_DEFAULT_FILE_NAME,
@@ -71,7 +71,10 @@ def convert_multilabel_nifti_to_rtstruct(
 
 
 def get_sample_number_from_nifti_path(nifti_path: str, delim: str = SAMPLE_SEP_DELIM) -> str:
-    _, txt = nifti_path.split(delim)
+    # Split the basename only: the full path may contain the delimiter (e.g. a tmp
+    # dir literally named ``...segment...``), which made the legacy whole-path split
+    # raise "too many values to unpack".
+    _, txt = os.path.basename(nifti_path).split(delim)
     return txt.strip("_").split(".")[0]
 
 
