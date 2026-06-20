@@ -64,15 +64,27 @@ DRAW uses a YAML-driven model registry: each cancer site is configured via a fil
 
 ## Architecture
 
-DRAW is a Click-based CLI with five top-level commands ([`main.py`](main.py)):
+DRAW is a Click-based CLI (`draw`) layered into four packages under [`src/`](src/), with
+dependencies pointing strictly inward (core never imports the database, the watcher, or
+torch at import time):
 
-| Command            | Module                                                  | What it does |
-|--------------------|---------------------------------------------------------|--------------|
-| `preprocess`       | [`draw/preprocess/`](draw/preprocess/)                  | Convert DICOM to NIfTI, normalise labels, prepare nnU-Net dataset |
-| `train-single-gpu` | [`draw/train/`](draw/train/)                            | Train an nnU-Net model on a prepared dataset |
-| `predict`          | [`draw/predict/`](draw/predict/)                        | Run inference on a study and write DICOM RT-Struct |
-| `start-pipeline`   | [`draw/pipeline/`](draw/pipeline/)                      | Continuous mode: watch a directory and process incoming studies |
-| `zip-model`        | [`draw/impex/`](draw/impex/)                            | Export a trained model bundle for deployment |
+| Package | Role | Depends on |
+|---|---|---|
+| [`draw_contracts`](src/draw_contracts/) | Pure DTOs + Protocols: `SegmentationJob`, `JobQueue`, `StatusSink`, `StorageBackend`. The seams between layers. | nothing |
+| [`draw_core`](src/draw_core/) | Segmentation policy: preprocess, the nnU-Net adapter / warm predictor, postprocess, the `segment_study` orchestrator, the typed model registry. No DB, no GPU at import. | contracts |
+| [`draw_conversion`](src/draw_conversion/) | Standalone DICOM ↔ NIfTI ↔ RT-Struct conversion. | core, contracts |
+| [`draw_pipeline`](src/draw_pipeline/) | Scaffolding: SQL/in-memory job queue, watcher, continuous loop, Alembic, and the CLI entrypoint. | all of the above |
+
+CLI commands:
+
+| Command            | What it does |
+|--------------------|--------------|
+| `preprocess`       | Convert DICOM to NIfTI, normalise labels, prepare an nnU-Net dataset |
+| `train-single-gpu` | Train an nnU-Net model on a prepared dataset |
+| `predict`          | Run inference on a folder of studies and write DICOM RT-Struct (`--warm`, `--gpu-id`) |
+| `start-pipeline`   | Continuous mode: watch a directory and process incoming studies |
+| `zip-model`        | Export a trained model bundle for deployment |
+| `db upgrade` / `db current` | Apply / inspect database migrations (the continuous pipeline auto-creates the schema on startup) |
 
 ### Engineering decisions worth surfacing
 
@@ -82,19 +94,144 @@ DRAW is a Click-based CLI with five top-level commands ([`main.py`](main.py)):
 4. **Largest-3D-component post-processing for paired structures.** Femur_Head_L / Femur_Head_R get occasionally cross-classified across the midline. Retaining only the largest connected component per label eliminates the strays. Femur_Head_L Dice: 0.874 → 0.895. Neutral or positive on every other structure.
 5. **Continuous prediction pipeline.** `start-pipeline` runs as a long-lived watcher that picks up new DICOM studies, runs inference, writes RT-Struct back, and records workflow state in the configured database. This is what powers the 300+ scans/day clinical deployment.
 6. **DICOM ↔ NIfTI conversion glue** via [`dcmrtstruct2nii`](https://github.com/Sikerdebaard/dcmrtstruct2nii) (forward) and [`rt_utils`](https://github.com/qurit/rt-utils) (reverse).
+7. **Database as a queue, with crash recovery.** Incoming studies are enqueued in a SQL
+   table (`INIT → STARTED → PREDICTED → SENT`, plus `FAILED`). Workers claim items
+   atomically; a lease + reaper re-queues studies stranded by a killed process, and the
+   RT-Struct write is idempotent — so an interrupted run is reprocessed exactly-once in
+   effect, not duplicated.
 
-The custom training logic lives in [`Dutta-SD/nnunet_draw`](https://github.com/Dutta-SD/nnunet_draw), which DRAW pins as a dependency in [`requirements.txt`](requirements.txt).
+The custom training logic lives in [`Dutta-SD/nnunet_draw`](https://github.com/Dutta-SD/nnunet_draw), pinned as the `gpu` optional dependency in [`pyproject.toml`](pyproject.toml).
 
 ## Installation
+
+DRAW uses [uv](https://docs.astral.sh/uv/) for dependency management. Dependencies are split
+into **extras** so you can install only what a given machine needs — notably, the heavy
+`torch` / nnU-Net stack lives behind the `gpu` extra, so the core and conversion layers
+(and the test suite) install and run on a CPU-only box.
 
 ```bash
 git clone https://github.com/CHAVI-India/draw.git
 cd draw
-pip install -r requirements.txt
+
+# Inference / pipeline host (has an NVIDIA GPU):
+uv sync --extra conversion --extra pipeline --extra gpu
+
+# Dev / CI box (no GPU — runs the full non-GPU test suite):
+uv sync --extra conversion --extra pipeline
+
 cp template.env.draw.yml env.draw.yml   # then fill in the values
 ```
 
-Required environment variables (in `env.draw.yml`): `DB_URL`, `DB_NAME`, `TABLE_NAME`, `WATCH_DIR`, `MODEL_DEF_ROOT`.
+| Extra | Pulls in | Needed for |
+|---|---|---|
+| `conversion` | numpy, nibabel, pydicom, SimpleITK, dcmrtstruct2nii, rt-utils, isal | DICOM ↔ NIfTI conversion |
+| `pipeline` | SQLAlchemy, alembic, watchdog, retry | the queue, watcher, continuous pipeline |
+| `gpu` | torch, torchvision, the nnU-Net fork | training and inference |
+
+> **GPU/CUDA note:** `torch` is intentionally unpinned. Install the wheel matching your
+> host CUDA driver (e.g. the `cu118` index used historically), then `uv sync --extra gpu`.
+
+Required values in `env.draw.yml`: `DB_URL`, `DB_NAME`, `TABLE_NAME`, `WATCH_DIR`,
+`MODEL_DEF_ROOT`. The nnU-Net data directories default to `data/nnUNet_{raw,preprocessed,results}`.
+
+## Running DRAW
+
+All commands are invoked via the installed `draw` console script. With uv, prefix them with
+`uv run` (or activate the venv: `source .venv/bin/activate`, then call `draw` directly).
+
+```bash
+uv run draw --help          # list all commands
+uv run draw <command> --help
+```
+
+### 1. Preprocess — DICOM → nnU-Net dataset
+
+Converts a folder of DICOM study directories into an nnU-Net training dataset for a model.
+
+```bash
+uv run draw preprocess \
+    --root-dir data/raw/TS_Prime \   # parent dir; each child is one DICOM series
+    --dataset-id 720 \               # 3-digit nnU-Net dataset id
+    --dataset-name TSPrime \         # a model name from config_yaml/
+    --start 0                        # sample-numbering offset (for appending batches)
+# --only-original  : skip RT-Struct parsing (inference-shaped data with no ground truth)
+```
+
+### 2. Train — single GPU
+
+Plans and trains one nnU-Net model on a prepared dataset.
+
+```bash
+uv run draw train-single-gpu \
+    --model-name TSPrime \
+    --dataset-id 720 \
+    --model-fold 0 \
+    --gpu-id 0 \
+    --determine-postprocessing \     # also compute the connected-component postproc
+    --train-continue                 # resume from the latest checkpoint
+```
+
+For multi-GPU (DDP) training, drive nnU-Net's trainer directly — see
+[`bin/train_ddp.sh`](bin/train_ddp.sh). [`bin/ts_train.sh`](bin/ts_train.sh) is a
+parameterized preprocess+train wrapper (`bash bin/ts_train.sh -n TSPrime -i 720 -d 0 -p -v`).
+
+### 3. Predict — one-shot inference on a folder
+
+Runs inference on every study directory under `--root-dir` and writes DICOM RT-Structs.
+
+```bash
+uv run draw predict \
+    --root-dir data/raw/TSPrime_test \   # parent dir of DICOM series
+    --preds-dir output \                 # where RT-Structs are written
+    --dataset-name TSPrime \
+    --only-original
+# --warm          : keep model weights resident in-process across sub-models (faster;
+#                   requires the gpu extra). Default is the cold-start subprocess path.
+# --gpu-id 0      : pin inference to a specific GPU / MIG slice.
+```
+
+### 4. Start the continuous pipeline (clinical deployment)
+
+Long-lived process: a watcher enqueues new DICOM studies dropped into `WATCH_DIR`, and a
+worker segments them and writes RT-Structs. **The schema is auto-created on startup** — no
+manual migration step for a fresh single-machine deployment.
+
+```bash
+uv run draw start-pipeline
+```
+
+Run it under a process supervisor for clinical uptime, e.g. a `systemd` unit with
+`Restart=always` (Linux), so a crash auto-restarts and the reaper recovers any in-flight
+study. See [`documentation/deployment.md`](documentation/deployment.md).
+
+### 5. Database migrations
+
+The pipeline auto-creates the table on startup, so most deployments need nothing here. To
+evolve the schema on a long-lived database, use Alembic via the CLI:
+
+```bash
+uv run draw db current     # show the current schema revision
+uv run draw db upgrade     # apply migrations up to head
+```
+
+### 6. Export a model for deployment
+
+```bash
+uv run draw zip-model --model-name TSPrime --dataset-id 720
+```
+
+## Development
+
+```bash
+uv sync --extra conversion --extra pipeline   # no GPU needed
+uv run pytest                                 # full suite runs CPU-only
+uv run ruff check src/ tests/
+```
+
+The test suite (unit + functional) runs without a GPU or a database server: conversion is
+exercised on synthetic DICOM, segmentation orchestration uses a fake predictor, and the
+queue is tested against in-memory and SQLite backends. GPU inference itself is validated
+separately on real NVIDIA hardware.
 
 ## Documentation
 
@@ -102,7 +239,7 @@ Comprehensive documentation lives under [`documentation/`](documentation/):
 
 - [`architecture.md`](documentation/architecture.md) — system design, module structure, key engineering decisions
 - [`installation.md`](documentation/installation.md) — prerequisites, setup, hardware requirements
-- [`cli_reference.md`](documentation/cli_reference.md) — full CLI reference for all 5 commands
+- [`cli_reference.md`](documentation/cli_reference.md) — full CLI reference for all commands
 - [`configuration.md`](documentation/configuration.md) — environment file, YAML model configs, tunable constants
 - [`data_flow.md`](documentation/data_flow.md) — format conversions (DICOM ↔ NIfTI ↔ RT-Struct), axis handling
 - [`training_guide.md`](documentation/training_guide.md) — end-to-end training workflow, cloud training, resumption
