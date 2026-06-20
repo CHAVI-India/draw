@@ -8,6 +8,7 @@ on each other. This is the Dependency Inversion boundary: details depend on poli
 
 from draw_contracts.dto import ModelSpec, SegmentationJob, SegmentationResult, SeriesResult
 from draw_contracts.protocols import JobStatus, StatusSink, StorageBackend
+from draw_contracts.queue import JobQueue, QueueItem
 from draw_contracts.sink import NullStatusSink
 
 __all__ = [
@@ -18,5 +19,7 @@ __all__ = [
     "JobStatus",
     "StatusSink",
     "StorageBackend",
+    "JobQueue",
+    "QueueItem",
     "NullStatusSink",
 ]

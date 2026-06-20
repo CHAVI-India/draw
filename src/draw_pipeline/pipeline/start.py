@@ -14,7 +14,7 @@ from draw_core.logging import get_logger
 from draw_core.models import ModelRegistry
 from draw_pipeline.config import RuntimeEnv
 from draw_pipeline.dao.common import ensure_schema, get_engine
-from draw_pipeline.dao.db import DBConnection
+from draw_pipeline.dao.db import SqlJobQueue
 
 log = get_logger(__name__)
 
@@ -22,19 +22,19 @@ log = get_logger(__name__)
 def _run_watcher(env: RuntimeEnv) -> None:
     from draw_pipeline.pipeline.task_copy import task_watch_dir
 
-    db = DBConnection(get_engine(env.db_url))
+    queue = SqlJobQueue(get_engine(env.db_url))
     registry = ModelRegistry.from_yaml_dir(env.model_def_root)
-    task_watch_dir(env.watch_dir, db, registry)
+    task_watch_dir(env.watch_dir, queue, registry)
 
 
 def _run_predictor(env: RuntimeEnv, config: CoreConfig) -> None:
     from draw_core.accessor.nnunetv2 import NNUNetV2Adapter
     from draw_pipeline.pipeline.task_predict import task_model_prediction
 
-    db = DBConnection(get_engine(env.db_url), batch_size=config.pred_batch_size)
+    queue = SqlJobQueue(get_engine(env.db_url), batch_size=config.pred_batch_size)
     registry = ModelRegistry.from_yaml_dir(env.model_def_root)
     adapter = NNUNetV2Adapter(config)
-    task_model_prediction(db, registry, config, adapter)
+    task_model_prediction(queue, registry, config, adapter)
 
 
 def start_continuous_prediction(env: RuntimeEnv, config: CoreConfig) -> None:

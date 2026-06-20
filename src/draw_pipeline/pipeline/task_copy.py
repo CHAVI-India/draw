@@ -22,12 +22,10 @@ from pydicom import dcmread
 from watchdog.events import FileSystemEvent, PatternMatchingEventHandler
 from watchdog.observers import Observer
 
+from draw_contracts.queue import JobQueue
 from draw_core.constants import DCM_REGEX, DICOM_TAG_SERIES_INSTANCE_UID
 from draw_core.logging import get_logger
 from draw_core.models import ModelRegistry
-from draw_pipeline.dao.common import Status
-from draw_pipeline.dao.db import DBConnection
-from draw_pipeline.dao.table import DicomLog
 
 log = get_logger(__name__)
 
@@ -71,24 +69,18 @@ def wait_copy_finish(filename: str) -> None:
     log.info("File %s copy complete detected", filename)
 
 
-def modification_event_trigger(src_path: str, db: DBConnection, registry: ModelRegistry) -> None:
+def modification_event_trigger(src_path: str, queue: JobQueue, registry: ModelRegistry) -> None:
     log.info("MODIFIED %s", src_path)
     try:
         series_name = _series_uid_from_dir(src_path)
-        if series_name is None or not os.path.exists(src_path) or db.exists(series_name):
+        if series_name is None or not os.path.exists(src_path) or queue.exists(series_name):
             log.info("Duplicate event @ %s with series %s", src_path, series_name)
             return
 
         wait_copy_finish(src_path)
         model_name = determine_model(src_path, registry)
         if model_name is not None:
-            dcm = DicomLog(
-                input_path=src_path,
-                model=model_name,
-                series_name=series_name,
-                status=Status.INIT,
-            )
-            db.enqueue([dcm])
+            queue.enqueue(series_name=series_name, input_path=src_path, model=model_name)
         else:
             log.warning("SRC %s not processed as no valid model found", src_path)
     except IndexError:
@@ -97,7 +89,7 @@ def modification_event_trigger(src_path: str, db: DBConnection, registry: ModelR
         log.error("Error while processing modification %s", src_path, exc_info=True)
 
 
-def task_watch_dir(watch_dir: str, db: DBConnection, registry: ModelRegistry) -> None:
+def task_watch_dir(watch_dir: str, queue: JobQueue, registry: ModelRegistry) -> None:
     path = os.path.normpath(watch_dir)
     redundant_event_path = Path(path).resolve()
 
@@ -108,7 +100,7 @@ def task_watch_dir(watch_dir: str, db: DBConnection, registry: ModelRegistry) ->
             and src_path.resolve() != redundant_event_path
             and not event.is_synthetic
         ):
-            modification_event_trigger(event.src_path, db, registry)
+            modification_event_trigger(event.src_path, queue, registry)
 
     def on_deleted(event: FileSystemEvent) -> None:
         log.info("DELETED %s", event.src_path)

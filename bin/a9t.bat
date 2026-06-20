@@ -8,5 +8,5 @@ set ENV_NAME=a9t
 REM Activate the Conda environment
 call %CONDA_PATH%\Scripts\activate %ENV_NAME%
 
-REM Run the Python script
-python D:\totalsegmentator\a9t_v2\kgp.segmentation\main.py start-pipeline
+REM Run the pipeline via the installed console script (run from the repo root).
+draw start-pipeline

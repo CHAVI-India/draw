@@ -1,19 +1,16 @@
-"""Database query/command layer for ``DicomLog`` records.
+"""SQL-backed JobQueue.
 
-Ported from ``draw/dao/db.py``. Key changes:
+``SqlJobQueue`` implements the ``draw_contracts.JobQueue`` Protocol on top of the
+``DicomLog`` table. The pipeline depends only on the Protocol, so this backend is
+swappable for an in-memory queue (tests / single process) or a broker later, with no
+pipeline changes.
 
-* No global engine. ``DBConnection`` is constructed with an explicit engine (built
-  from ``RuntimeEnv`` at the entrypoint), removing the import-time DB connection.
-* ATOMIC DEQUEUE (bug fix). The legacy ``dequeue`` did ``top()`` (a SELECT) and then a
-  *separate* per-row UPDATE to STARTED. Two pipeline workers could read the same INIT
-  rows and both claim them (lost-update / double prediction). Here a single
-  transaction selects-and-locks the candidate rows with
-  ``with_for_update(skip_locked=True)`` and flips them to STARTED before commit, so a
-  row is claimed by exactly one worker. ``skip_locked`` lets a second worker move past
-  rows already locked by the first instead of blocking.
+The atomic ``claim`` is the key correctness property: a single transaction selects
+candidate rows ``with_for_update(skip_locked=True)`` and flips them to STARTED before
+commit, so two concurrent workers never claim the same study. (SKIP LOCKED is a no-op
+on SQLite, which is single-writer anyway; it does real work on Postgres/MySQL.)
 
-Method names (``dequeue``/``enqueue``/``top``/``exists``/``update_status_by_id``/
-``update_record_by_series_name``) are kept for backward compatibility.
+``QueueItem`` DTOs cross the boundary — the ORM ``DicomLog`` never leaks to callers.
 """
 
 from __future__ import annotations
@@ -21,6 +18,8 @@ from __future__ import annotations
 from sqlalchemy import Engine, exists, select, update
 from sqlalchemy.orm import Session
 
+from draw_contracts.protocols import JobStatus
+from draw_contracts.queue import QueueItem
 from draw_core.logging import get_logger
 from draw_pipeline.dao.common import Status
 from draw_pipeline.dao.table import DicomLog
@@ -28,19 +27,56 @@ from draw_pipeline.dao.table import DicomLog
 log = get_logger(__name__)
 
 
-class DBConnection:
-    """Query the database and interact with ``DicomLog`` records."""
+def _to_item(row: DicomLog) -> QueueItem:
+    return QueueItem(
+        series_name=row.series_name,
+        input_path=row.input_path,
+        model=row.model,
+        status=JobStatus(row.status.value),
+        output_path=row.output_path,
+        item_id=row.id,
+    )
+
+
+class SqlJobQueue:
+    """SQL implementation of the JobQueue Protocol (SQLite/Postgres/MySQL via URL)."""
 
     def __init__(self, engine: Engine, batch_size: int = 1):
         self.engine = engine
         self.batch_size = batch_size
 
-    def dequeue(self, model: str) -> list[DicomLog]:
-        """Atomically claim a batch of INIT records for ``model`` and mark STARTED.
+    # ---------------------------------------------------------------- producer
+    def enqueue(self, series_name: str, input_path: str, model: str) -> bool:
+        """Insert a study. Returns False if already present (dedup on series_name)."""
+        if self.exists(series_name):
+            log.info("Skip enqueue; series already queued: %s", series_name)
+            return False
+        try:
+            with Session(self.engine) as sess:
+                sess.add(
+                    DicomLog(
+                        series_name=series_name,
+                        input_path=input_path,
+                        model=model,
+                        status=Status.INIT,
+                    )
+                )
+                sess.commit()
+            log.info("Enqueued %s (%s)", series_name, model)
+            return True
+        except Exception:
+            log.error("Could not enqueue %s", series_name, exc_info=True)
+            return False
 
-        Returns detached ``DicomLog`` snapshots for the claimed rows. Two workers
-        running concurrently never claim the same row.
-        """
+    def exists(self, series_name: str) -> bool:
+        with Session(self.engine) as sess:
+            q = sess.query(exists().where(DicomLog.series_name == series_name))
+            return bool(sess.execute(q).scalar())
+
+    # ---------------------------------------------------------------- consumer
+    def claim(self, model: str, limit: int | None = None) -> list[QueueItem]:
+        """Atomically claim up to ``limit`` INIT items for ``model``, mark STARTED."""
+        limit = self.batch_size if limit is None else limit
         try:
             with Session(self.engine) as sess:
                 stmt = (
@@ -48,78 +84,58 @@ class DBConnection:
                     .where(DicomLog.model == model)
                     .where(DicomLog.status == Status.INIT)
                     .order_by(DicomLog.created_on)
-                    .limit(self.batch_size)
+                    .limit(limit)
                     .with_for_update(skip_locked=True)
                 )
                 rows = sess.scalars(stmt).all()
                 for row in rows:
                     row.status = Status.STARTED
                 sess.flush()
-                claimed = [_detach(row) for row in rows]
+                items = [_to_item(row) for row in rows]
                 sess.commit()
-            log.info("Dequeuing %d", len(claimed))
-            return claimed
+            log.info("Claimed %d for %s", len(items), model)
+            return items
         except Exception:
-            log.error("ERROR while dequeuing", exc_info=True)
+            log.error("Error while claiming for %s", model, exc_info=True)
             return []
 
-    def exists(self, series_name: str) -> bool:
-        with Session(self.engine) as sess:
-            q = sess.query(exists().where(DicomLog.series_name == series_name))
-            return bool(sess.execute(q).scalar())
-
-    def top(self, model: str, status: Status) -> list[DicomLog]:
+    def list_by_status(
+        self, model: str, status: JobStatus, limit: int | None = None
+    ) -> list[QueueItem]:
+        limit = self.batch_size if limit is None else limit
         try:
             with Session(self.engine) as sess:
                 stmt = (
                     select(DicomLog)
                     .where(DicomLog.model == model)
-                    .where(DicomLog.status == status)
+                    .where(DicomLog.status == Status(status.value))
                     .order_by(DicomLog.created_on)
-                    .limit(self.batch_size)
+                    .limit(limit)
                 )
-                return [_detach(r) for r in sess.scalars(stmt).all()]
+                return [_to_item(r) for r in sess.scalars(stmt).all()]
         except Exception:
-            log.error("Error while fetching TOP %s %s", status, model, exc_info=True)
+            log.error("Error listing %s for %s", status, model, exc_info=True)
             return []
 
-    def enqueue(self, records: list[DicomLog]) -> None:
-        try:
-            n = len(records)
-            with Session(self.engine) as sess:
-                sess.add_all(records)
-                sess.commit()
-            log.info("Enqueued %d", n)
-        except Exception:
-            log.error("Could not insert records", exc_info=True)
+    # ------------------------------------------------------------ transitions
+    def mark_predicted(self, series_name: str, output_path: str) -> None:
+        self._set_status(series_name, Status.PREDICTED, output_path=output_path)
 
-    def update_status_by_id(self, dcm_log: DicomLog, updated_status: Status) -> None:
-        with Session(self.engine) as sess:
-            stmt = update(DicomLog).where(DicomLog.id == dcm_log.id).values(status=updated_status)
-            sess.execute(stmt)
-            sess.commit()
+    def mark_sent(self, series_name: str) -> None:
+        self._set_status(series_name, Status.SENT)
 
-    def update_record_by_series_name(
-        self, series_name: str, output_path: str, status: Status
+    def mark_failed(self, series_name: str, error: str) -> None:
+        log.error("Job failed for %s: %s", series_name, error)
+        self._set_status(series_name, Status.FAILED)
+
+    def _set_status(
+        self, series_name: str, status: Status, output_path: str | None = None
     ) -> None:
+        values: dict = {"status": status}
+        if output_path is not None:
+            values["output_path"] = output_path
         with Session(self.engine) as sess:
-            stmt = (
-                update(DicomLog)
-                .where(DicomLog.series_name == series_name)
-                .values(status=status, output_path=output_path)
+            sess.execute(
+                update(DicomLog).where(DicomLog.series_name == series_name).values(**values)
             )
-            sess.execute(stmt)
             sess.commit()
-
-
-def _detach(row: DicomLog) -> DicomLog:
-    """Return a session-independent copy of a row so callers can use it after commit."""
-    return DicomLog(
-        id=row.id,
-        series_name=row.series_name,
-        input_path=row.input_path,
-        output_path=row.output_path,
-        status=row.status,
-        model=row.model,
-        created_on=row.created_on,
-    )

@@ -91,7 +91,7 @@ echo -e "\nSTARTING..."
 if ${PREPROCESS}; then
     echo "Starting Preprocessing..."
 
-    python ./main.py preprocess \
+    draw preprocess \
     --root-dir "$ROOT_DIR" \
     --dataset-id "$DATASET_ID" \
     --dataset-name "$DATASET_NAME"

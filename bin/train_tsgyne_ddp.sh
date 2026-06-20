@@ -10,7 +10,7 @@ DATASET_ID=820
 DATASET_NAME=TSGyne
 DATA_PATH=data/raw/TSGyneRaw
 
-python ./main.py preprocess \
+draw preprocess \
     --root-dir  $DATA_PATH\
     --dataset-id $DATASET_ID \
     --dataset-name $DATASET_NAME
