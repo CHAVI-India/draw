@@ -5,9 +5,6 @@ protocol->model lookup, watch dir) are passed in rather than read from import-ti
 globals.
 
 KNOWN BUGS (deliberately left, tracked separately — out of scope for this port):
-  * ``wait_copy_finish`` calls ``os.path.getsize`` on a *directory*, which does not
-    reflect a directory's growing contents; copy-completion detection is unreliable.
-    TODO(draw-pipeline): replace with a stable mtime/size sweep over the dir tree.
   * watchdog emits duplicate/synthetic events; only coarse filtering is applied.
 """
 
@@ -35,7 +32,9 @@ WATCH_DELAY = 1
 
 def determine_model(dir_path: str, registry: ModelRegistry) -> str | None:
     try:
-        one_file_name = glob.glob(os.path.join(dir_path, DCM_REGEX), recursive=True)[0]
+        # Sort so model detection is deterministic: an arbitrary glob order could
+        # pick a localizer slice with a different ProtocolName than the main series.
+        one_file_name = sorted(glob.glob(os.path.join(dir_path, DCM_REGEX), recursive=True))[0]
         ds = dcmread(one_file_name)
         dcm_protocol_name = ds.ProtocolName.lower()
         for cfg in registry.configs.values():
@@ -60,13 +59,42 @@ def _series_uid_from_dir(dir_path: str) -> str | None:
     return None
 
 
-def wait_copy_finish(filename: str) -> None:
-    # TODO(draw-pipeline): getsize on a directory is unreliable; see module docstring.
-    old_size = -1
-    while old_size != os.path.getsize(filename):
-        old_size = os.path.getsize(filename)
+def _dir_tree_size(path: str) -> tuple[int, int]:
+    """Total byte size + file count of every file under ``path`` (recursive).
+
+    ``os.path.getsize`` on a *directory* returns the fixed size of the directory
+    entry (e.g. 4096 bytes), not its growing contents — so the legacy probe exited
+    after one tick regardless of whether the DICOM files had finished copying. We
+    instead sum the sizes of all files in the tree so a still-growing study is
+    correctly detected as not-yet-stable.
+    """
+    total = 0
+    count = 0
+    for f in Path(path).rglob("*"):
+        if f.is_file():
+            try:
+                total += f.stat().st_size
+                count += 1
+            except OSError:
+                # File vanished mid-walk (still copying) — treat as "changing".
+                count += 1
+    return total, count
+
+
+def wait_copy_finish(dir_path: str) -> None:
+    """Block until the directory tree under ``dir_path`` stops growing.
+
+    Polls the recursive (total-size, file-count) of the study directory; the copy is
+    considered complete once two consecutive probes ``COPY_WAIT_SECONDS`` apart are
+    identical. This handles a study landing as many DICOM files written over time.
+    """
+    previous = (-1, -1)
+    current = _dir_tree_size(dir_path)
+    while current != previous:
         time.sleep(COPY_WAIT_SECONDS)
-    log.info("File %s copy complete detected", filename)
+        previous = current
+        current = _dir_tree_size(dir_path)
+    log.info("Directory %s copy complete (%d files, %d bytes)", dir_path, current[1], current[0])
 
 
 def modification_event_trigger(src_path: str, queue: JobQueue, registry: ModelRegistry) -> None:

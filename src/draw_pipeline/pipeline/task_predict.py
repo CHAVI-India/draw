@@ -51,7 +51,9 @@ def run_prediction(
     if not claimed:
         return False
 
-    time.sleep(PREDICTION_COOLDOWN_SECS)
+    # NB: no cooldown sleep here — sleeping after claiming would burn the lease while
+    # the item sits in STARTED doing nothing, bringing it closer to a spurious reaper
+    # re-queue. The inter-cycle pacing lives in task_model_prediction's GPU recheck.
     model = registry.get(seg_model_name)
     sink = QueueStatusSink(queue)
     dicom_dirs = [item.input_path for item in claimed]
@@ -90,9 +92,18 @@ def task_model_prediction(
     # Imported here so importing this module needs no GPU/infra at module load.
     from draw_pipeline.pipeline.gpu import get_gpu_memory
 
+    model_names = registry.names()
+    if not model_names:
+        raise RuntimeError(
+            "No models configured (empty registry); cannot start prediction loop. "
+            "Check MODEL_DEF_ROOT points at the config_yaml dir."
+        )
+
     required_free_mb = config.required_free_gpu_mb
-    model_name_generator = cycle(registry.names())
-    while model_name := next(model_name_generator):
+    # cycle() over a non-empty list never terminates, so this is an explicit
+    # forever-loop that round-robins models. (Legacy used `while next(cycle)` which
+    # both obscured that AND crashed with an uncaught StopIteration on an empty list.)
+    for model_name in cycle(model_names):
         try:
             # Recover studies stranded in STARTED by a previously-killed worker before
             # looking for new work, so a crash/restart self-heals.

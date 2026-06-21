@@ -105,3 +105,18 @@ def test_marking_failed_moves_item_to_failed(queue):
     queue.mark_failed("s1", "boom")
 
     assert queue.list_by_status("TSPrime", JobStatus.FAILED, limit=10)
+
+
+def test_enqueue_dedup_does_not_resurrect_an_in_flight_study(queue):
+    """A duplicate enqueue must NOT reset a study that's already past INIT.
+
+    The dedup relies on the series_name UNIQUE constraint (SQL) / key (memory), not a
+    status check, so a re-arriving watcher event for a study already STARTED/PREDICTED
+    is rejected rather than clobbering its progress back to INIT.
+    """
+    queue.enqueue("s1", "/in/s1", "TSPrime")
+    queue.claim("TSPrime", limit=1)  # -> STARTED
+
+    assert queue.enqueue("s1", "/in/s1", "TSPrime") is False
+    # Still STARTED (nothing waiting in INIT to claim).
+    assert queue.claim("TSPrime", limit=10) == []

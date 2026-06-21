@@ -101,10 +101,10 @@ class NNUNetV2Adapter:
             "--verify_dataset_integrity",
             "--clean",
             "-c", config,
-            "-np", self.num_plan_processes,
+            "-np", str(self.num_plan_processes),
         ]
         if gpu_memory_gb is not None:
-            run_args.extend(["-gpu_memory_target", gpu_memory_gb])
+            run_args.extend(["-gpu_memory_target", str(gpu_memory_gb)])
         self._run_subprocess(run_args)
 
     def train(

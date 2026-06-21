@@ -45,7 +45,11 @@ def segment_study(
     RT-Struct per study. ``engine`` may be injected (tests / a prebuilt engine).
     """
     log = logger or _default_log
-    exp_number = datetime.now().strftime("%Y-%m-%d.%H-%M")
+    # job_id is a human-readable audit label only. The OUTPUT PATH is keyed by the
+    # (unique) series_uid, NOT by this timestamp — otherwise a reaper-driven retry
+    # would write to a fresh timestamped dir and orphan the previous attempt's output
+    # on disk. Series-keyed + atomic RT-Struct write == idempotent, no disk leak.
+    job_id = datetime.now().strftime("%Y-%m-%d.%H-%M")
     final_output_dir = os.path.join(preds_dir, model.name, "results")
     work_dir = os.path.join(preds_dir, model.name)
 
@@ -74,12 +78,12 @@ def segment_study(
             log.warning("No source DICOM dir for series %s; skipping", series_uid)
             continue
         save_dir = write_named_masks_to_rtstruct(
-            named_masks, dicom_dir, f"{final_output_dir}/{exp_number}/{series_uid}"
+            named_masks, dicom_dir, f"{final_output_dir}/{series_uid}"
         )
         result_sink.record_predicted(series_uid, save_dir)
         all_series.append(SeriesResult(series_name=series_uid, output_path=save_dir))
 
     log.info("Segmentation complete for %s (%d series)", model.name, len(all_series))
     return SegmentationResult(
-        job_id=exp_number, output_local_dir=final_output_dir, series=all_series
+        job_id=job_id, output_local_dir=final_output_dir, series=all_series
     )

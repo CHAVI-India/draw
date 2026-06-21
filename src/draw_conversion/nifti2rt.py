@@ -59,18 +59,25 @@ def write_named_masks_to_rtstruct(
     rt_path = os.path.join(save_dir, RT_DEFAULT_FILE_NAME)
     tmp_path = f"{rt_path}.tmp.dcm"  # rt_utils appends .dcm; keep temp name ending .dcm
 
-    rtstruct = RTStructBuilder.create_new(dicom_dir)
-    seen: set[str] = set()
+    # Deduplicate by name, keeping the LAST mask for each (matches the documented
+    # "last write wins" intent). rt_utils' add_roi cannot replace an existing ROI, so
+    # actually emitting two ROIs with the same name produces a malformed RT-Struct
+    # that downstream TPS (Eclipse/Monaco/RayStation) handle inconsistently — a
+    # clinical data-quality hazard. So we collapse duplicates BEFORE writing.
+    deduped: dict[str, np.ndarray] = {}
     for name, mask in named_masks:
-        if name in seen:
-            log.warning("Duplicate ROI name %s in one study; last write wins", name)
-        seen.add(name)
+        if name in deduped:
+            log.warning("Duplicate ROI name %s in one study; keeping the latest mask", name)
+        deduped[name] = mask
+
+    rtstruct = RTStructBuilder.create_new(dicom_dir)
+    for name, mask in deduped.items():
         log.info("Processing mask %s", name)
         rtstruct.add_roi(mask=mask.astype(bool), name=name)
 
     rtstruct.save(tmp_path)
     os.replace(tmp_path, rt_path)
-    log.info("RT-Struct saved at %s (%d structures)", rt_path, len(named_masks))
+    log.info("RT-Struct saved at %s (%d structures)", rt_path, len(deduped))
     return save_dir
 
 

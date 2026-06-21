@@ -11,9 +11,13 @@ from __future__ import annotations
 import os
 import shutil
 
+import numpy as np
+from rt_utils import RTStructBuilder
+
 from draw_conversion.nifti2rt import (
     convert_multilabel_nifti_to_rtstruct,
     convert_nifti_outputs_to_dicom,
+    write_named_masks_to_rtstruct,
 )
 from draw_core.sidecar import SampleRecord, append_sidecar
 
@@ -62,6 +66,28 @@ def test_outputs_to_dicom_returns_series_results(tmp_path, ct_series_dir, multil
     assert len(results) == 1
     assert results[0].series_name  # SeriesInstanceUID resolved
     assert os.path.isdir(results[0].output_path)
+
+
+def test_duplicate_roi_names_collapse_to_one(tmp_path, ct_series_dir):
+    """Two masks with the same ROI name must produce ONE ROI (last wins), not two.
+
+    rt_utils cannot replace an ROI, so emitting two same-named ROIs yields a malformed
+    RT-Struct that treatment planning systems handle inconsistently — a clinical data
+    hazard. The writer collapses duplicates before writing.
+    """
+    ct_dir, _series_uid, (rows, cols, n_slices) = ct_series_dir
+    first = np.zeros((rows, cols, n_slices), dtype=bool)
+    first[8:16, 8:16, 1:5] = True
+    second = np.zeros((rows, cols, n_slices), dtype=bool)
+    second[20:28, 20:28, 1:5] = True
+
+    save_dir = write_named_masks_to_rtstruct(
+        [("Bladder", first), ("Bladder", second)], ct_dir, str(tmp_path / "out")
+    )
+
+    rt_path = os.path.join(save_dir, [f for f in os.listdir(save_dir) if f.endswith(".dcm")][0])
+    names = RTStructBuilder.create_from(ct_dir, rt_path).get_roi_names()
+    assert names == ["Bladder"]  # collapsed, not duplicated
 
 
 def test_outputs_to_dicom_empty_is_safe(tmp_path):

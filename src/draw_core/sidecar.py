@@ -13,6 +13,7 @@ from __future__ import annotations
 import json
 import os
 from dataclasses import dataclass
+from typing import ClassVar
 
 from draw_core.constants import DB_NAME
 
@@ -25,10 +26,11 @@ class SampleRecord:
     sample_number: str
     dicom_root_dir: str
 
-    # On-disk JSON keys (kept identical to the legacy format).
-    _KEY_DATASET_ID = "DatasetID"
-    _KEY_SAMPLE_NUMBER = "SampleNumber"
-    _KEY_DICOM_ROOT_DIR = "DICOMRootDir"
+    # On-disk JSON keys (kept identical to the legacy format). ClassVar so the
+    # dataclass treats them as constants, not fields.
+    _KEY_DATASET_ID: ClassVar[str] = "DatasetID"
+    _KEY_SAMPLE_NUMBER: ClassVar[str] = "SampleNumber"
+    _KEY_DICOM_ROOT_DIR: ClassVar[str] = "DICOMRootDir"
 
     def to_dict(self) -> dict:
         return {

@@ -18,6 +18,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 
 from sqlalchemy import Engine, exists, select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from draw_contracts.protocols import JobStatus
@@ -50,10 +51,14 @@ class SqlJobQueue:
 
     # ---------------------------------------------------------------- producer
     def enqueue(self, series_name: str, input_path: str, model: str) -> bool:
-        """Insert a study. Returns False if already present (dedup on series_name)."""
-        if self.exists(series_name):
-            log.info("Skip enqueue; series already queued: %s", series_name)
-            return False
+        """Insert a study. Returns False if already present (dedup on series_name).
+
+        Deduplication relies solely on the ``series_name`` UNIQUE constraint, not a
+        prior ``exists()`` check: the check-then-insert pattern is a TOCTOU race (two
+        watcher processes could both pass the check and then one fails). Catching the
+        constraint violation makes the dedup atomic and treats a duplicate as the
+        benign INFO it is — not a logged error.
+        """
         try:
             with Session(self.engine) as sess:
                 sess.add(
@@ -67,6 +72,9 @@ class SqlJobQueue:
                 sess.commit()
             log.info("Enqueued %s (%s)", series_name, model)
             return True
+        except IntegrityError:
+            log.info("Skip enqueue; series already queued: %s", series_name)
+            return False
         except Exception:
             log.error("Could not enqueue %s", series_name, exc_info=True)
             return False

@@ -117,7 +117,18 @@ class NnUNetEngine:
                 convert_dicom_dir_to_nnunet_dataset,
             )
             results.extend(self._masks_from_predictions(submodel, pred_dir, dataset_dir))
+            # Reclaim disk as soon as this submodel's masks are in memory. Each study
+            # leaves ~hundreds of MB of intermediate NIfTIs per submodel (raw images +
+            # predictions + postproc); on a hospital workstation with a small SSD,
+            # waiting until the NEXT study of the same model (the _run_submodel reset)
+            # lets unprocessed studies accumulate unboundedly if the loop stalls.
+            self._cleanup_submodel(submodel, work_dir, dataset_dir)
         return results
+
+    def _cleanup_submodel(self, submodel, work_dir: str, dataset_dir: str) -> None:
+        """Delete a submodel's intermediate files after its masks have been read."""
+        _remove(dataset_dir)
+        _remove(os.path.join(work_dir, str(submodel.dataset_id)))
 
     def _build_predictor(self, adapter):
         from draw_core.accessor.predictor import SubprocessPredictor
