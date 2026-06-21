@@ -34,12 +34,27 @@ _MODEL_SCHEMA = Schema(
     }
 )
 
+# Legacy schema: a flat nnU-Net config with a `models` block and no `engine` key.
+# Still accepted verbatim so existing config_yaml/*.yml parse unchanged.
 _CONF_SCHEMA = Schema(
     {
         "name": str,
         "protocol": str,
         # 0-10 reserved for MSD. Avoid.
         "models": {And(int, lambda n: n > 10): _MODEL_SCHEMA},
+    }
+)
+
+# New generic envelope (Option A): an explicit `engine` + an opaque `engine_config`
+# block that the engine validates itself. `map` is the generic label map the shared
+# conversion layer needs (id -> structure name).
+_ENGINE_CONF_SCHEMA = Schema(
+    {
+        "name": str,
+        "protocol": str,
+        "engine": str,
+        "map": {And(int, lambda n: n > 0): str},
+        "engine_config": dict,  # opaque to the core; the engine parses/validates it
     }
 )
 
@@ -58,10 +73,19 @@ class SubModel:
 
 @dataclass(frozen=True)
 class ModelConfig:
-    """A per-site model: a protocol plus its ordered submodels keyed by dataset id."""
+    """A per-site model — the generic envelope the pipeline understands.
+
+    The pipeline reads only ``name``, ``protocol``, ``engine``, and ``label_map``, and
+    passes ``engine_config`` opaquely to the engine factory. ``submodels`` is kept for
+    backward compatibility (it mirrors the legacy nnU-Net ``models`` block) but the
+    generic layer no longer depends on it.
+    """
 
     name: str
     protocol: str
+    engine: str = "nnunet"
+    engine_config: dict = field(default_factory=dict)
+    label_map: dict[int, str] = field(default_factory=dict)
     submodels: dict[int, SubModel] = field(default_factory=dict)
 
 
@@ -97,6 +121,24 @@ class ModelRegistry:
             except yaml.YAMLError:
                 log.warning("Exception while reading YAML %s", file_name, exc_info=True)
                 return None
+        # New generic envelope: explicit `engine` + opaque `engine_config`.
+        if isinstance(raw, dict) and "engine" in raw:
+            try:
+                _ENGINE_CONF_SCHEMA.validate(raw)
+            except SchemaError:
+                log.error("Error validating engine schema for %s", file_name, exc_info=True)
+                return None
+            return ModelConfig(
+                name=raw["name"],
+                protocol=raw["protocol"],
+                engine=raw["engine"],
+                engine_config=raw["engine_config"],
+                label_map=dict(raw["map"]),
+            )
+
+        # Legacy flat nnU-Net config (no `engine` key): default engine=nnunet, carry the
+        # whole dict as the engine_config block, and derive the generic label map as the
+        # union of submodel maps. Behaviour is unchanged for existing files.
         try:
             _CONF_SCHEMA.validate(raw)
         except SchemaError:
@@ -114,7 +156,24 @@ class ModelRegistry:
             )
             for dataset_id, spec in raw["models"].items()
         }
-        return ModelConfig(name=raw["name"], protocol=raw["protocol"], submodels=submodels)
+        # nnU-Net submodels reuse label ids (each starts at 1), so a naive union would
+        # collide and drop structures. Re-key to a flat, collision-free id space so the
+        # generic layer sees EVERY structure name. (nnU-Net itself ignores this map —
+        # structures are baked into the trained weights and returned via LabeledMask.)
+        label_map: dict[int, str] = {}
+        next_id = 1
+        for sub in submodels.values():
+            for name in sub.seg_map.values():
+                label_map[next_id] = name
+                next_id += 1
+        return ModelConfig(
+            name=raw["name"],
+            protocol=raw["protocol"],
+            engine="nnunet",
+            engine_config={"models": raw["models"]},
+            label_map=label_map,
+            submodels=submodels,
+        )
 
     def get(self, name: str) -> ModelConfig:
         return self.configs[name]

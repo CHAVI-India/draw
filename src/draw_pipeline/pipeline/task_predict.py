@@ -46,7 +46,6 @@ def run_prediction(
     queue: JobQueue,
     registry: ModelRegistry,
     config: CoreConfig,
-    adapter,
 ) -> bool:
     claimed = queue.claim(seg_model_name, limit=config.pred_batch_size)
     if not claimed:
@@ -64,10 +63,8 @@ def run_prediction(
                 "dicom_dirs": dicom_dirs,
                 "preds_dir": OUTPUT_DIR,
                 "model": model,
-                "adapter": adapter,
                 "config": config,
                 "result_sink": sink,
-                "only_original": True,
             },
             tries=2,
             logger=log,
@@ -89,7 +86,6 @@ def task_model_prediction(
     queue: JobQueue,
     registry: ModelRegistry,
     config: CoreConfig,
-    adapter,
 ) -> None:
     # Imported here so importing this module needs no GPU/infra at module load.
     from draw_pipeline.pipeline.gpu import get_gpu_memory
@@ -108,7 +104,7 @@ def task_model_prediction(
             any_model_ran = False
             if gpu_memory_free >= required_free_mb:
                 log.info("%d MB free GPU. Trying %s", gpu_memory_free, model_name)
-                any_model_ran = run_prediction(model_name, queue, registry, config, adapter)
+                any_model_ran = run_prediction(model_name, queue, registry, config)
             if not any_model_ran:
                 time.sleep(GPU_RECHECK_TIME_SECONDS)
         except Exception:

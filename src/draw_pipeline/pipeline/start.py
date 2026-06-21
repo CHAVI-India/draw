@@ -28,13 +28,12 @@ def _run_watcher(env: RuntimeEnv) -> None:
 
 
 def _run_predictor(env: RuntimeEnv, config: CoreConfig) -> None:
-    from draw_core.accessor.nnunetv2 import NNUNetV2Adapter
     from draw_pipeline.pipeline.task_predict import task_model_prediction
 
     queue = SqlJobQueue(get_engine(env.db_url), batch_size=config.pred_batch_size)
     registry = ModelRegistry.from_yaml_dir(env.model_def_root)
-    adapter = NNUNetV2Adapter(config)
-    task_model_prediction(queue, registry, config, adapter)
+    # The engine is built per-model from config inside segment_study (factory).
+    task_model_prediction(queue, registry, config)
 
 
 def start_continuous_prediction(env: RuntimeEnv, config: CoreConfig) -> None:

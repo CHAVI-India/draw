@@ -1,162 +1,85 @@
-"""High-level segmentation policy: DICOM study -> RT-Struct outputs.
+"""High-level segmentation policy — engine-agnostic.
 
-Ported from ``draw/predict/predict.py``'s ``folder_predict``, recast as a clean
-``segment_study`` that takes its dependencies explicitly (Dependency Inversion):
+The pipeline's only contract: DICOM study dirs in, DICOM RT-Structs out. ``segment_study``
+builds the configured engine from the factory, asks it for per-structure masks, and
+writes one multi-label RT-Struct per study via the shared conversion layer. It contains
+NO model-specific logic — nnU-Net, nnFormer, a promptable/remote model are all just an
+``engine`` behind the same Protocol.
 
-* a parsed ``ModelConfig`` instead of the ``ALL_SEG_MAP`` global,
-* an ``NNUNetV2Adapter`` and ``CoreConfig`` rather than env reads,
-* a ``StatusSink`` that decides where per-series progress is recorded — the core no
-  longer reaches into the DAO. It returns a ``SegmentationResult`` for the caller.
-
-The legacy code ran the submodels in a ``multiprocessing.Pool``. That required the
-adapter/config to be picklable and is being superseded by the in-process warm
-predictor (GPU perf levers 1/2). We run submodels sequentially here for correctness
-and simplicity; the warm-pool path is the future (see ``accessor/warm_predictor``).
+What stays here (generic): grouping masks by study, locating each study's reference
+DICOM, writing the RT-Struct, recording status. What used to be here (nnU-Net dataset
+folders, submodels, .pkl postproc, predictors) now lives in ``NnUNetEngine``.
 """
 
 from __future__ import annotations
 
 import logging
 import os
-import shutil
 from datetime import datetime
 
 from draw_contracts.dto import SegmentationResult, SeriesResult
-from draw_conversion.nifti2rt import convert_nifti_outputs_to_dicom
-from draw_core.accessor.predictor import Predictor, SubprocessPredictor
+from draw_conversion.dicom_io import get_series_instance_uid
+from draw_conversion.nifti2rt import write_named_masks_to_rtstruct
 from draw_core.config import CoreConfig
-from draw_core.constants import SAMPLE_NUMBER_ZFILL
+from draw_core.engines.base import LabeledMask, SegmentationEngine
+from draw_core.engines.factory import build_engine
 from draw_core.logging import get_logger
-from draw_core.models import ModelConfig, SubModel
-from draw_core.postprocess.postprocess import postprocess_folder
-from draw_core.preprocess.preprocess_data import convert_dicom_dir_to_nnunet_dataset
+from draw_core.models import ModelConfig
 
 _default_log = get_logger(__name__)
-
-
-def _remove(path: str, log: logging.Logger) -> None:
-    if os.path.exists(path):
-        log.info("Deleting %s", path)
-        shutil.rmtree(path)
-
-
-def _build_predictor(adapter, config: CoreConfig, log: logging.Logger) -> Predictor:
-    """Pick the inference backend from config. Warm import is lazy (keeps core
-    torch-free unless the warm path is actually requested)."""
-    if config.use_warm_predictor:
-        from draw_core.accessor.warm_predictor import WarmPredictor
-
-        log.info("Using warm in-process predictor (GPU levers 1/2/5/8)")
-        return WarmPredictor(config, gpu_id=config.gpu_id)
-    return SubprocessPredictor(adapter)
-
-
-def _predict_one_submodel(
-    submodel: SubModel,
-    dicom_dirs: list[str],
-    preds_dir: str,
-    parent_model_name: str,
-    only_original: bool,
-    predictor: Predictor,
-    adapter,
-    config: CoreConfig,
-    log: logging.Logger,
-) -> str:
-    """Preprocess all studies for one submodel, run inference, optionally postprocess.
-
-    Returns the directory holding this submodel's predictions.
-    """
-    dataset_id = submodel.dataset_id
-    dataset_dir = os.path.normpath(
-        f"{config.nnunet_raw_dir}/Dataset{dataset_id}_{submodel.name}"
-    )
-    log.info("Processing ID %s", dataset_id)
-    _remove(dataset_dir, log)
-
-    log.info("Found %d DICOM directories", len(dicom_dirs))
-    for idx, dicom_dir in enumerate(dicom_dirs):
-        sample_number = str(idx).zfill(SAMPLE_NUMBER_ZFILL)
-        dataset_dir = convert_dicom_dir_to_nnunet_dataset(
-            dicom_dir,
-            dataset_id,
-            submodel.name,
-            sample_number,
-            submodel.seg_map,
-            raw_dir=config.nnunet_raw_dir,
-            only_original=only_original,
-            logger=log,
-        )
-
-    tr_images = os.path.join(dataset_dir, "imagesTr")
-    model_pred_dir = os.path.join(preds_dir, parent_model_name, str(dataset_id), "modelpred")
-    _remove(model_pred_dir, log)
-    os.makedirs(model_pred_dir, exist_ok=True)
-    predictor.predict_submodel(submodel, tr_images, model_pred_dir)
-
-    if submodel.postprocess is not None:
-        op_folder = os.path.join(preds_dir, parent_model_name, str(dataset_id), "postprocess")
-        _remove(op_folder, log)
-        os.makedirs(op_folder, exist_ok=True)
-        pkl_file_dest = f"{op_folder}/postprocessing.pkl"
-        shutil.copy(submodel.postprocess, pkl_file_dest)
-        postprocess_folder(model_pred_dir, op_folder, pkl_file_dest, adapter)
-        model_pred_dir = op_folder
-
-    return model_pred_dir
 
 
 def segment_study(
     dicom_dirs: list[str],
     preds_dir: str,
     model: ModelConfig,
-    adapter,
     config: CoreConfig,
     result_sink,
     logger: logging.Logger | None = None,
-    only_original: bool = True,
-    predictor: Predictor | None = None,
+    engine: SegmentationEngine | None = None,
 ) -> SegmentationResult:
-    """Segment a set of DICOM study directories with ``model`` and record results.
+    """Segment DICOM study dirs with ``model``'s engine and write RT-Structs.
 
-    For each submodel: convert each DICOM dir to an nnU-Net dataset, run inference,
-    optionally postprocess, then convert predicted NIfTIs to RT-Structs. Each
-    produced series is reported to ``result_sink``. Returns the aggregate result.
-
-    A single ``predictor`` is built once and reused across all submodels — with the
-    warm predictor that collapses repeated model loads into one (GPU perf lever 2).
-    If not injected, it is chosen from ``config.use_warm_predictor``.
+    The engine (default nnU-Net, from ``model.engine`` + ``model.engine_config``)
+    returns per-structure masks; we group them by source series and write one
+    RT-Struct per study. ``engine`` may be injected (tests / a prebuilt engine).
     """
     log = logger or _default_log
     exp_number = datetime.now().strftime("%Y-%m-%d.%H-%M")
     final_output_dir = os.path.join(preds_dir, model.name, "results")
+    work_dir = os.path.join(preds_dir, model.name)
+
+    if engine is None:
+        engine = build_engine(model.engine, model.engine_config, core_config=config)
+
+    masks: list[LabeledMask] = engine.segment(dicom_dirs, model.label_map, work_dir)
+
+    # Map each produced series uid back to its source DICOM dir (needed to build the
+    # RT-Struct against the reference images).
+    uid_to_dicom = {}
+    for d in dicom_dirs:
+        uid = get_series_instance_uid(d)
+        if uid:
+            uid_to_dicom[uid] = d
+
+    # Group all of a study's structures so they land in ONE multi-label RT-Struct.
+    by_series: dict[str, list[tuple[str, object]]] = {}
+    for m in masks:
+        by_series.setdefault(m.series_uid, []).append((m.name, m.mask))
+
     all_series: list[SeriesResult] = []
-
-    if predictor is None:
-        predictor = _build_predictor(adapter, config, log)
-
-    for submodel in model.submodels.values():
-        model_pred_dir = _predict_one_submodel(
-            submodel, dicom_dirs, preds_dir, model.name, only_original,
-            predictor, adapter, config, log,
+    for series_uid, named_masks in by_series.items():
+        dicom_dir = uid_to_dicom.get(series_uid)
+        if dicom_dir is None:
+            log.warning("No source DICOM dir for series %s; skipping", series_uid)
+            continue
+        save_dir = write_named_masks_to_rtstruct(
+            named_masks, dicom_dir, f"{final_output_dir}/{exp_number}/{series_uid}"
         )
-        dataset_dir = os.path.normpath(
-            f"{config.nnunet_raw_dir}/Dataset{submodel.dataset_id}_{submodel.name}"
-        )
-        series = convert_nifti_outputs_to_dicom(
-            model_pred_dir,
-            final_output_dir,
-            dataset_dir,
-            submodel.dataset_id,
-            exp_number,
-            submodel.seg_map,
-        )
-        for sr in series:
-            result_sink.record_predicted(sr.series_name, sr.output_path)
-            all_series.append(sr)
+        result_sink.record_predicted(series_uid, save_dir)
+        all_series.append(SeriesResult(series_name=series_uid, output_path=save_dir))
 
-    log.info("Prediction complete for %s", model.name)
+    log.info("Segmentation complete for %s (%d series)", model.name, len(all_series))
     return SegmentationResult(
-        job_id=exp_number,
-        output_local_dir=final_output_dir,
-        series=all_series,
+        job_id=exp_number, output_local_dir=final_output_dir, series=all_series
     )

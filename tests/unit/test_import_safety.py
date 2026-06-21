@@ -24,6 +24,11 @@ PURE_MODULES = [
     "draw_conversion.dicom_io",
     "draw_conversion.nifti2rt",
     "draw_conversion.dcm2nii",
+    "draw_core.engines.base",
+    "draw_core.engines.factory",
+    "draw_core.engines.nnunet",
+    "draw_core.segment",
+    "draw_core.models",
 ]
 
 
@@ -39,6 +44,13 @@ def test_core_does_not_import_torch():
     """Importing core must not pull in torch (it's behind the optional gpu extra)."""
     import sys
 
-    for mod in ["draw_core", "draw_core.constants", "draw_conversion.nifti2rt"]:
+    for mod in [
+        "draw_core",
+        "draw_core.constants",
+        "draw_conversion.nifti2rt",
+        "draw_core.engines.factory",
+        "draw_core.engines.nnunet",
+        "draw_core.segment",
+    ]:
         importlib.import_module(mod)
     assert "torch" not in sys.modules

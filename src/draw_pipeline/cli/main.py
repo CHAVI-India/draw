@@ -75,11 +75,23 @@ def cli_prepare_and_train(
     email_address, determine_postprocessing, train_continue,
 ):
     from draw_core.accessor.nnunetv2 import NNUNetV2Adapter
+    from draw_core.engines.base import TrainableEngine
+    from draw_core.engines.factory import build_engine
     from draw_pipeline.train import prepare_and_train
 
     _env, registry = _bootstrap()
     model = _resolve_model(registry, model_name)
     config = CoreConfig()
+
+    # Interface segregation: only engines that declare the training capability can be
+    # trained. A remote/ONNX/import-only engine fails here with a clear message
+    # instead of pretending to train.
+    engine = build_engine(model.engine, model.engine_config, core_config=config)
+    if not isinstance(engine, TrainableEngine):
+        raise click.ClickException(
+            f"Engine {model.engine!r} for model {model_name!r} does not support training."
+        )
+
     adapter = NNUNetV2Adapter(config)
     log.warning("Make sure you ran preprocess before this. Ignore if you did.")
     prepare_and_train(
@@ -99,22 +111,19 @@ def cli_predict(preds_dir, dataset_name, root_dir, only_original, warm, gpu_id):
     import os
 
     from draw_contracts.sink import NullStatusSink
-    from draw_core.accessor.nnunetv2 import NNUNetV2Adapter
     from draw_core.segment import segment_study
 
     _env, registry = _bootstrap()
     model = _resolve_model(registry, dataset_name)
+    # --warm/--gpu-id are nnU-Net runtime knobs; they flow to the engine via CoreConfig.
     config = CoreConfig(use_warm_predictor=warm, gpu_id=gpu_id)
-    adapter = NNUNetV2Adapter(config)
     dicom_dirs = [f.path for f in os.scandir(root_dir) if f.is_dir()]
     segment_study(
         dicom_dirs=dicom_dirs,
         preds_dir=preds_dir,
         model=model,
-        adapter=adapter,
         config=config,
         result_sink=NullStatusSink(),
-        only_original=only_original,
     )
 
 

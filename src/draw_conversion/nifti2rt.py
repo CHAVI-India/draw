@@ -42,6 +42,38 @@ def make_mask_from_rt(nifti_file_path: str) -> np.ndarray:
     return np.transpose(np_mask, [1, 0, 2])
 
 
+def write_named_masks_to_rtstruct(
+    named_masks: list[tuple[str, np.ndarray]],
+    dicom_dir: str,
+    save_dir: str,
+) -> str:
+    """Write a single RT-Struct from already-oriented (name, boolean-mask) pairs.
+
+    Engine-agnostic: the masks may come from any engine (nnU-Net, a promptable model,
+    a remote API). All structures for one study are written in ONE pass, so multiple
+    submodels / overlapping labels combine into one multi-label RT-Struct correctly.
+    Idempotent: writes to a temp file and atomically replaces, so a retry overwrites
+    its own deterministic, series-keyed output rather than stacking ROIs.
+    """
+    os.makedirs(save_dir, exist_ok=True)
+    rt_path = os.path.join(save_dir, RT_DEFAULT_FILE_NAME)
+    tmp_path = f"{rt_path}.tmp.dcm"  # rt_utils appends .dcm; keep temp name ending .dcm
+
+    rtstruct = RTStructBuilder.create_new(dicom_dir)
+    seen: set[str] = set()
+    for name, mask in named_masks:
+        if name in seen:
+            log.warning("Duplicate ROI name %s in one study; last write wins", name)
+        seen.add(name)
+        log.info("Processing mask %s", name)
+        rtstruct.add_roi(mask=mask.astype(bool), name=name)
+
+    rtstruct.save(tmp_path)
+    os.replace(tmp_path, rt_path)
+    log.info("RT-Struct saved at %s (%d structures)", rt_path, len(named_masks))
+    return save_dir
+
+
 def convert_multilabel_nifti_to_rtstruct(
     nifti_file_path: str,
     dicom_dir: str,
