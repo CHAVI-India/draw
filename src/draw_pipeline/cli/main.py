@@ -5,9 +5,11 @@ five commands and flags as before: ``train-single-gpu``, ``predict``, ``preproce
 ``start-pipeline``, ``zip-model``.
 
 Each command configures logging first, loads the ``RuntimeEnv`` + ``ModelRegistry``,
-builds a ``CoreConfig`` + ``NNUNetV2Adapter``, and calls into the core. The model
-registry is loaded inside the command (not at import) so importing this module needs
-no env file. Model-name choices are validated against ``ModelRegistry.names()``.
+builds a ``CoreConfig``, resolves the model's engine via the factory, and calls into
+the core. The model registry is loaded inside the command (not at import) so importing
+this module needs no env file. Model-name choices are validated against
+``ModelRegistry.names()``. The CLI is engine-agnostic — it never touches nnU-Net
+directly; training goes through the ``TrainableEngine`` capability.
 """
 
 from __future__ import annotations
@@ -74,10 +76,8 @@ def cli_prepare_and_train(
     model_name, model_fold, gpu_id, dataset_id, gpu_space,
     email_address, determine_postprocessing, train_continue,
 ):
-    from draw_core.accessor.nnunetv2 import NNUNetV2Adapter
     from draw_core.engines.base import TrainableEngine
     from draw_core.engines.factory import build_engine
-    from draw_pipeline.train import prepare_and_train
 
     _env, registry = _bootstrap()
     model = _resolve_model(registry, model_name)
@@ -85,18 +85,24 @@ def cli_prepare_and_train(
 
     # Interface segregation: only engines that declare the training capability can be
     # trained. A remote/ONNX/import-only engine fails here with a clear message
-    # instead of pretending to train.
+    # instead of pretending to train. All training orchestration lives in the engine,
+    # so the CLI (and draw_pipeline) never touch nnU-Net directly.
     engine = build_engine(model.engine, model.engine_config, core_config=config)
     if not isinstance(engine, TrainableEngine):
         raise click.ClickException(
             f"Engine {model.engine!r} for model {model_name!r} does not support training."
         )
 
-    adapter = NNUNetV2Adapter(config)
     log.warning("Make sure you ran preprocess before this. Ignore if you did.")
-    prepare_and_train(
-        model, model_fold, gpu_id, dataset_id, gpu_space, email_address,
-        determine_postprocessing, train_continue, adapter, config,
+    if email_address:
+        log.info("Will notify %s on completion", email_address)
+    engine.train(
+        str(dataset_id),
+        model_fold,
+        gpu_space=gpu_space,
+        device_id=gpu_id,
+        train_continue=train_continue,
+        determine_postprocessing=determine_postprocessing,
     )
 
 

@@ -193,13 +193,61 @@ class NnUNetEngine:
         )
 
     def train(self, dataset_id: str, fold: str, **kwargs) -> None:
+        """Plan, train, and optionally determine postprocessing for one submodel.
+
+        All nnU-Net training orchestration lives here (it used to be in
+        ``draw_pipeline/train.py``), so the adapter is only ever touched inside this
+        engine. ``kwargs``: gpu_space, device_id, train_continue, determine_postprocessing.
+        """
+        import glob
+
         from draw_core.accessor.nnunetv2 import NNUNetV2Adapter
 
+        adapter = NNUNetV2Adapter(self.core_config)
         sub = self._submodel(dataset_id)
-        NNUNetV2Adapter(self.core_config).train(
-            dataset_id, sub.config, fold, sub.trainer_name,
-            resume=kwargs.get("resume", True), device_id=kwargs.get("device_id", 0),
+
+        log.info("Planning %s", dataset_id)
+        adapter.plan(dataset_id, config=sub.config, gpu_memory_gb=kwargs.get("gpu_space"))
+
+        log.info(
+            "Training %s fold %s trainer %s device %s",
+            dataset_id, fold, sub.trainer_name, kwargs.get("device_id", 0),
         )
+        adapter.train(
+            dataset_id, sub.config, fold, sub.trainer_name,
+            resume=kwargs.get("train_continue", True), device_id=kwargs.get("device_id", 0),
+        )
+        log.info("Completed training for %s", dataset_id)
+
+        if kwargs.get("determine_postprocessing"):
+            paths = self._evaluation_paths(int(dataset_id), sub, fold)
+            dj_file, gt_dir, p_file, preds_dir, results_dir = paths
+            adapter.evaluate_on_folder(
+                gt_dir=gt_dir, preds_dir=preds_dir, dj_file=dj_file, p_file=p_file
+            )
+            adapter.determine_postprocessing(
+                input_folder=preds_dir, gt_labels_folder=gt_dir, dj_file=dj_file, p_file=p_file
+            )
+            for f in glob.glob(f"{preds_dir}/postprocessing**"):
+                shutil.copy(f, os.path.join(results_dir, os.path.basename(f)))
+            log.info("Postprocessing determined for %s", dataset_id)
+
+    def _evaluation_paths(
+        self, dataset_id: int, sub: NnUNetSubModel, fold: str
+    ) -> tuple[str, str, str, str, str]:
+        cc = self.core_config
+        results_dir = os.path.normpath(
+            f"{cc.nnunet_results_dir}/Dataset{dataset_id}_{sub.name}"
+            f"/{sub.trainer_name}__nnUNetPlans__{sub.config}"
+        )
+        gt_dir = os.path.normpath(
+            f"{cc.nnunet_preprocessed_dir}/Dataset{dataset_id}_{sub.name}/gt_segmentations"
+        )
+        preds_dir = os.path.normpath(f"{results_dir}/fold_{fold}/validation")
+        os.makedirs(preds_dir, exist_ok=True)
+        dj_file = os.path.normpath(f"{results_dir}/dataset.json")
+        p_file = os.path.normpath(f"{results_dir}/plans.json")
+        return dj_file, gt_dir, p_file, preds_dir, results_dir
 
     def _submodel(self, dataset_id: str) -> NnUNetSubModel:
         return self.config.submodels[int(dataset_id)]
