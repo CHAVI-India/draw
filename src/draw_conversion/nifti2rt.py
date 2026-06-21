@@ -48,14 +48,19 @@ def convert_multilabel_nifti_to_rtstruct(
     save_dir: str,
     label_to_name_map: dict[int, str],
 ) -> str:
-    """Write one multilabel NIfTI as a DICOM RT-Struct under ``save_dir``.
+    """Add this NIfTI's labels to the study's RT-Struct under ``save_dir``.
 
-    Idempotent: the output path is deterministic (``save_dir`` is keyed by
-    SeriesInstanceUID upstream) and we always build a FRESH RT-Struct, write it to a
-    temp file, then atomically ``os.replace`` it into place. So re-running the same
-    study (e.g. after a crash + reaper retry) overwrites its own output with an
-    equivalent file instead of appending duplicate ROIs to a stale one. This is what
-    makes at-least-once processing effectively-once.
+    Two correctness properties held simultaneously:
+
+    * **Accumulation across submodels** — the multi-submodel design (e.g. TSPrime's
+      OARs / CTVp / CTVn) writes each submodel's labels into the SAME study dir; they
+      must combine into one multi-label RT-Struct. So existing ROIs are preserved.
+    * **Idempotent per label name** — re-running the same labels (a crash+reaper
+      retry, or re-predicting a submodel) must REPLACE those ROIs, not duplicate them.
+      So any existing ROI whose name we are about to write is dropped first (new wins).
+
+    The result is written to a temp file and atomically ``os.replace``d into place, so
+    a reader never sees a half-written RT-Struct.
     """
     os.makedirs(save_dir, exist_ok=True)
     rt_path = os.path.join(save_dir, RT_DEFAULT_FILE_NAME)
@@ -63,11 +68,25 @@ def convert_multilabel_nifti_to_rtstruct(
     # ".dcm" (".tmp.dcm") to control the exact filename it writes.
     tmp_path = f"{rt_path}.tmp.dcm"
 
-    # Always create_new (never create_from an existing RT) so a retry does not stack
-    # ROIs on top of a previous run's output.
-    rtstruct = RTStructBuilder.create_new(dicom_dir)
     np_mask = make_mask_from_rt(nifti_file_path)
+    new_names = set(label_to_name_map.values())
 
+    # Preserve labels from other submodels already written for this study; drop any
+    # that this call will rewrite (so a retry replaces rather than stacks).
+    preserved: dict[str, np.ndarray] = {}
+    if os.path.exists(rt_path):
+        existing = RTStructBuilder.create_from(dicom_dir, rt_path)
+        for roi_name in existing.get_roi_names():
+            if roi_name in new_names:
+                continue
+            try:
+                preserved[roi_name] = existing.get_roi_mask_by_name(roi_name)
+            except Exception:
+                log.warning("Could not read existing ROI %s; it will be dropped", roi_name)
+
+    rtstruct = RTStructBuilder.create_new(dicom_dir)
+    for roi_name, mask in preserved.items():
+        rtstruct.add_roi(mask=mask, name=roi_name)
     for idx, name in label_to_name_map.items():
         log.info("Processing mask %s", name)
         rtstruct.add_roi(mask=(np_mask == idx), name=name)
